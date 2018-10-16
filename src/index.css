@@ -5,4 +5,10 @@ body {
 
 body, input, textarea {
   font-family: 'Iosevka', 'Sarasa Mono', 'Sarasa Mono SC', monospace;
+  font-size: 1rem;
+}
+
+
+input, textarea {
+  width: 100%;
 }
