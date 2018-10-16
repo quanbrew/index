@@ -1,0 +1,8 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body, input, textarea {
+  font-family: 'Iosevka', 'Sarasa Mono', 'Sarasa Mono SC', monospace;
+}

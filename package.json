@@ -1,0 +1,24 @@
+{
+  "name": "memoko",
+  "version": "0.1.0",
+  "description": "Let memoko organize your knowledge",
+  "license": "GPL-3.0",
+  "private": true,
+  "dependencies": {
+    "immutable": "4.0.0-rc.10",
+    "react": "^16.5.2",
+    "react-dom": "^16.5.2"
+  },
+  "scripts": {
+    "start": "parcel src/index.html",
+    "build": "NODE_ENV=production parcel build src/index.html"
+  },
+  "devDependencies": {
+    "@types/node": "^10.12.0",
+    "@types/react": "^16.4.17",
+    "@types/react-dom": "^16.0.9",
+    "parcel-bundler": "^1.10.3",
+    "tslint": "^5.11.0",
+    "typescript": "^3.1.3"
+  }
+}
