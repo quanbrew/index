@@ -52,6 +52,7 @@ class App extends React.Component<{}, State> {
           <ItemContainer
             item={root} update={this.update} select={this.edit} create={empty} zoom
             selected={selected} keys={rootKeys} next={rootKeys} prev={rootKeys}
+            indent={empty}
           />
           </ul>
         </Provider>

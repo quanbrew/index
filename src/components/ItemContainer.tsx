@@ -13,6 +13,7 @@ interface Props {
   next: Keys;
   prev: Keys;
   zoom?: boolean;
+  indent: (keys: Keys) => void;
 }
 
 
@@ -38,6 +39,19 @@ export class ItemContainer extends React.Component<Props, State> {
   };
 
 
+  indent = (keys: Keys) => {
+    const key = keys.last(null);
+    if (key === null || key <= 0) return;
+    const { item, update, select } = this.props;
+    const prevItem = item.children.get(key - 1, null);
+    const indentItem = item.children.get(key, null);
+    if (prevItem === null || indentItem === null)
+      return console.error('unexpected indent key');
+    const children = item.children.set(key - 1, addChild(prevItem, indentItem)).remove(key);
+    update({...item, children});
+    select(keys.pop().push(key - 1, prevItem.children.size));
+  };
+
   items = (currentItem: Item, key: number) => {
     const {selected, select, keys, update, item, prev, next} = this.props;
     let itemPrev = prev;
@@ -47,12 +61,14 @@ export class ItemContainer extends React.Component<Props, State> {
       itemPrev = this.itemTail(keys.push(key - 1), prevItem);
     let itemNext = next;
     if (key < item.children.size - 1) itemNext = keys.push(key + 1);
+
     return (
       <ItemContainer
         item={currentItem} key={key} selected={selected}
         select={select} keys={keys.push(key)}
         prev={itemPrev} next={itemNext}
         create={this.createChild}
+        indent={this.indent}
         update={(next: Item) => update({
           ...item,
           children: item.children.set(key, next)
@@ -91,9 +107,6 @@ export class ItemContainer extends React.Component<Props, State> {
       select(next);
   };
 
-  indent = () => {
-    console.log('>');
-  };
 
   unIndent = () => {
     console.log('<');
@@ -101,15 +114,16 @@ export class ItemContainer extends React.Component<Props, State> {
 
   handleKeyDown = (e: React.KeyboardEvent) => {
     // console.log(e.key, e.keyCode);
+    const {indent, create, keys} = this.props;
     e.stopPropagation();
     switch (e.key) {
       case 'ArrowUp': return this.up();
       case 'ArrowDown': return this.down();
-      case 'Enter': return this.props.create();
+      case 'Enter': return create();
       case 'Tab':
         e.preventDefault();
         if (e.shiftKey) { return this.unIndent() }
-        else { return this.indent() }
+        else { return indent(keys) }
     }
   };
 
