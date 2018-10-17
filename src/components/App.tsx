@@ -11,7 +11,7 @@ export type Keys = List<number>;
 
 interface State {
   root: Item;
-  selected: Keys;
+  selected?: Keys;
 }
 
 
@@ -34,16 +34,15 @@ class App extends React.Component<{}, State> {
         createItem('hello, world')
       ),
     );
-    this.state = {root, selected: rootKeys};
+    this.state = {root};
   }
 
-  edit = (selected: Keys) => this.setState({selected});
+  edit = (selected?: Keys) => this.setState({selected});
 
-  update = (root: Item) => this.setState({root});
+  update = (root: Item, callback?: () => void) => this.setState({root}, callback);
 
   public render() {
     const {root, selected} = this.state;
-
 
     return (
       <main className="App">
@@ -52,7 +51,7 @@ class App extends React.Component<{}, State> {
           <ItemContainer
             item={root} update={this.update} select={this.edit} create={empty} zoom
             selected={selected} keys={rootKeys} next={rootKeys} prev={rootKeys}
-            indent={empty}
+            indent={empty} unIndent={empty}
           />
           </ul>
         </Provider>

@@ -5,15 +5,16 @@ import { Consumer, Keys } from "./App";
 
 interface Props {
   item: Item,
-  update: (next: Item) => void;
-  select: (keys: Keys) => void;
-  create: () => void;
-  selected: Keys;
+  update: (next: Item, callback?: () => void) => void;
+  select: (keys?: Keys) => void;
+  create: (item?: Item, position?: number) => void;
+  selected?: Keys;
   keys: Keys;
   next: Keys;
   prev: Keys;
   zoom?: boolean;
   indent: (keys: Keys) => void;
+  unIndent: (keys: Keys) => void;
 }
 
 
@@ -26,10 +27,17 @@ export class ItemContainer extends React.Component<Props, State> {
     super(props);
   }
 
-  createChild = (child = createItem()) => {
+  createChild = (child = createItem(), after?: number) => {
     const {keys, item, select, update} = this.props;
-    select(keys.push(item.children.size));
-    update(addChild(item, child));
+    const size = item.children.size;
+    if (after === undefined) after = size;
+    else {
+      after += 1;
+      if (after > size) after = size;
+    }
+
+    select(keys.push(after));
+    update(addChild(item, child, after));
   };
 
   itemTail = (keys: Keys, item: Item): Keys => {
@@ -46,10 +54,25 @@ export class ItemContainer extends React.Component<Props, State> {
     const prevItem = item.children.get(key - 1, null);
     const indentItem = item.children.get(key, null);
     if (prevItem === null || indentItem === null)
-      return console.error('unexpected indent key');
+      return console.error('unexpected key', key);
     const children = item.children.set(key - 1, addChild(prevItem, indentItem)).remove(key);
-    update({...item, children});
-    select(keys.pop().push(key - 1, prevItem.children.size));
+    update(
+      {...item, children},
+      () => select(this.props.keys.push(key - 1, prevItem.children.size))
+    );
+  };
+
+
+  unIndent = (keys: Keys) => {
+    const key = keys.last(null);
+    if (key === null || keys.size < 2) return;
+    const {item, update, create} = this.props;
+    const current = item.children.get(key);
+    if (current === undefined) return console.error('unexpected key', key);
+    update(
+      {...item, children: item.children.remove(key)},
+      () => create(current, this.props.keys.last())
+    );
   };
 
   items = (currentItem: Item, key: number) => {
@@ -68,11 +91,8 @@ export class ItemContainer extends React.Component<Props, State> {
         select={select} keys={keys.push(key)}
         prev={itemPrev} next={itemNext}
         create={this.createChild}
-        indent={this.indent}
-        update={(next: Item) => update({
-          ...item,
-          children: item.children.set(key, next)
-        })}
+        indent={this.indent} unIndent={this.unIndent}
+        update={(next, callback) => update({ ...item, children: item.children.set(key, next) }, callback)}
       />
     );
   };
@@ -94,11 +114,6 @@ export class ItemContainer extends React.Component<Props, State> {
     }} />
   );
 
-  up = () => {
-    const {select, prev} = this.props;
-    select(prev);
-  };
-
   down = () => {
     const {select, next, item, keys} = this.props;
     if (item.children.size !== 0)
@@ -108,21 +123,20 @@ export class ItemContainer extends React.Component<Props, State> {
   };
 
 
-  unIndent = () => {
-    console.log('<');
-  };
+  clearEditing = () => { this.props.select() };
 
   handleKeyDown = (e: React.KeyboardEvent) => {
     // console.log(e.key, e.keyCode);
-    const {indent, create, keys} = this.props;
+    const {indent, unIndent, create, keys, select, prev} = this.props;
     e.stopPropagation();
     switch (e.key) {
-      case 'ArrowUp': return this.up();
+      case 'ArrowUp': return select(prev);
       case 'ArrowDown': return this.down();
-      case 'Enter': return create();
+      case 'Enter': return create(createItem(), keys.last());
+      case 'Escape': return this.clearEditing();
       case 'Tab':
         e.preventDefault();
-        if (e.shiftKey) { return this.unIndent() }
+        if (e.shiftKey) { return unIndent(keys) }
         else { return indent(keys) }
     }
   };
@@ -131,7 +145,7 @@ export class ItemContainer extends React.Component<Props, State> {
   render() {
     const {selected, keys} = this.props;
     const {children} = this.props.item;
-    const isSelected = selected.equals(keys);
+    const isSelected = selected ? selected.equals(keys) : false;
 
     return (
       <li onKeyDown={this.handleKeyDown}>

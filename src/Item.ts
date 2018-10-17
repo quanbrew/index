@@ -18,8 +18,8 @@ export const createItem = (text: string = ''): Item => ({
 });
 
 
-export const addChild = (parent: Item, child: Item): Item => ({
-  ...parent,
-  children: parent.children.push(child)
-});
+export const addChild = (parent: Item, child: Item, position?: number): Item => {
+  const children = position === undefined ? parent.children.push(child) : parent.children.insert(position, child);
+  return { ...parent, children }
+};
 
