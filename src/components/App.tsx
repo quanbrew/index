@@ -15,12 +15,9 @@ interface State {
 }
 
 
-interface Context {
-  edit: (selected: Keys) => void;
-}
-
-
-export const {Provider, Consumer} = React.createContext<Context>({ edit: empty });
+// interface Context {
+// }
+// export const {Provider, Consumer} = React.createContext<Context>({});
 
 const rootKeys = List();
 
@@ -46,15 +43,13 @@ class App extends React.Component<{}, State> {
 
     return (
       <main className="App">
-        <Provider value={{edit: this.edit}}>
-          <ul>
-          <ItemContainer
-            item={root} update={this.update} select={this.edit} create={empty} zoom
-            selected={selected} keys={rootKeys} next={rootKeys} prev={rootKeys}
-            indent={empty} unIndent={empty}
-          />
-          </ul>
-        </Provider>
+        <ul>
+        <ItemContainer
+          item={root} update={this.update} select={this.edit} create={empty} zoom
+          selected={selected} keys={rootKeys} next={rootKeys} prev={rootKeys}
+          indent={empty} unIndent={empty}
+        />
+        </ul>
       </main>
     );
   }

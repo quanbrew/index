@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { addChild, createItem, Item } from "../Item";
-import { Consumer, Keys } from "./App";
+import { Keys } from "./App";
 
 
 interface Props {
@@ -22,7 +22,7 @@ interface State {
 }
 
 
-export class ItemContainer extends React.Component<Props, State> {
+export class ItemContainer extends React.PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
   }
@@ -87,7 +87,7 @@ export class ItemContainer extends React.Component<Props, State> {
 
     return (
       <ItemContainer
-        item={currentItem} key={key} selected={selected}
+        item={currentItem} key={currentItem.id} selected={selected}
         select={select} keys={keys.push(key)}
         prev={itemPrev} next={itemNext}
         create={this.createChild}
@@ -99,12 +99,8 @@ export class ItemContainer extends React.Component<Props, State> {
 
 
   content = () => {
-    const {keys, item} = this.props;
-    return (
-      <Consumer>
-        {context => <div className='itemContent' onClick={() => context.edit(keys)}>{item.text}</div>}
-      </Consumer>
-    );
+    const {keys, item, select} = this.props;
+    return (<div className='itemContent' onClick={() => select(keys)}>{item.text}</div>);
   };
 
   editing = () => (
@@ -146,7 +142,6 @@ export class ItemContainer extends React.Component<Props, State> {
     const {selected, keys} = this.props;
     const {children} = this.props.item;
     const isSelected = selected ? selected.equals(keys) : false;
-
     return (
       <li onKeyDown={this.handleKeyDown}>
         {isSelected ? this.editing() : this.content() }
