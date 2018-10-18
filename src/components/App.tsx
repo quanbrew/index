@@ -42,7 +42,7 @@ class App extends React.Component<{}, State> {
           <ItemContainer
             item={ root } update={ this.update } select={ this.edit } create={ empty }
             selected={ selected } path={ rootKeys } next={ rootKeys } prev={ rootKeys }
-            indent={ empty } unIndent={ empty }
+            indent={ empty } unIndent={ empty } remove={ empty }
           />
         </ul>
       </main>

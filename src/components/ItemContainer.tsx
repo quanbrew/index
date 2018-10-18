@@ -14,6 +14,7 @@ interface Props {
   prev: Path;
   indent: (path: Path) => void;
   unIndent: (path: Path) => void;
+  remove: (path: Path, prev?: Path) => void;
 }
 
 
@@ -37,6 +38,17 @@ export class ItemContainer extends React.PureComponent<Props, State> {
       if (after + 1 < size) position = after + 1;
     }
     update(addChild(item, child, position), () => select(path.push(position)));
+  };
+  removeChild = (path: Path, prev?: Path) => {
+    const index = path.last(undefined);
+    if (index === undefined) return;
+
+    const { item, update, select } = this.props;
+
+    update(
+      { ...item, children: item.children.remove(index) },
+      () => select(prev),
+    )
   };
   indentChild = (path: Path) => {
     const index = path.last(0);
@@ -99,13 +111,13 @@ export class ItemContainer extends React.PureComponent<Props, State> {
         prev={itemPrev} next={itemNext}
         create={ this.createChildItem }
         indent={ this.indentChild } unIndent={ this.unIndentChild }
-        update={ itemUpdate }
+        update={ itemUpdate } remove={ this.removeChild }
       />
     );
   };
   handleKeyDown = (e: React.KeyboardEvent) => {
     // console.log(e.key, e.keyCode);
-    const { item, indent, unIndent, create, path, select, prev } = this.props;
+    const { item, indent, unIndent, create, path, select, prev, remove } = this.props;
     e.stopPropagation(); // don't propagate to parent.
     switch (e.key) {
       case 'ArrowUp':
@@ -129,6 +141,11 @@ export class ItemContainer extends React.PureComponent<Props, State> {
         }
         else {
           return indent(path)
+        }
+      case 'Backspace':
+        if (item.text === '') {
+          e.preventDefault();
+          return remove(path, prev);
         }
     }
   };
