@@ -47,8 +47,8 @@ class App extends React.Component<{}, State> {
       <main className="App">
         <ul>
           <ItemContainer
-            item={ root } update={ this.update } select={ this.edit }
-            selected={ selected } path={ rootPath } next={ rootPath } prev={ rootPath }
+            item={ root } update={ this.update } edit={ this.edit }
+            editing={ selected } path={ rootPath } next={ rootPath } prev={ rootPath }
             create={ this.createChild }
             indent={ empty } unIndent={ empty } remove={ empty }
           />

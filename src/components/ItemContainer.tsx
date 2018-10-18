@@ -6,9 +6,9 @@ import { Path } from "./App";
 interface Props {
   item: Item,
   update: (next: Item, callback?: () => void) => void;
-  select: (path?: Path) => void;
+  edit: (path?: Path) => void;
   create: (item?: Item, after?: number) => void;
-  selected?: Path;
+  editing?: Path;
   path: Path;
   next: Path;
   prev: Path;
@@ -31,23 +31,23 @@ const itemTail = (path: Path, item: Item): Path => {
 
 export class ItemContainer extends React.PureComponent<Props, State> {
   createChildItem = (child = createItem(), after?: number) => {
-    const { path, item, select, update } = this.props;
+    const { path, item, edit, update } = this.props;
     const size = item.children.size;
     let position = size;
     if (after !== undefined) {
       if (after + 1 < size) position = after + 1;
     }
-    update(addChild(item, child, position), () => select(path.push(position)));
+    update(addChild(item, child, position), () => edit(path.push(position)));
   };
   removeChild = (path: Path, prev?: Path) => {
     const index = path.last(undefined);
     if (index === undefined) return;
 
-    const { item, update, select } = this.props;
+    const { item, update, edit } = this.props;
 
     update(
       { ...item, children: item.children.remove(index) },
-      () => select(prev),
+      () => edit(prev),
     )
   };
   indentChild = (path: Path) => {
@@ -56,7 +56,7 @@ export class ItemContainer extends React.PureComponent<Props, State> {
     // first item or root item can't indent
     if (index === 0) return;
 
-    const { item, update, select } = this.props;
+    const { item, update, edit } = this.props;
     const prevItem = item.children.get(index - 1, null);
     const indentItem = item.children.get(index, null);
     // make type checker happy
@@ -69,7 +69,7 @@ export class ItemContainer extends React.PureComponent<Props, State> {
     // update children
     update(
       { ...item, children },
-      () => select(this.props.path.push(index - 1, prevItem.children.size))
+      () => edit(this.props.path.push(index - 1, prevItem.children.size))
     );
   };
   unIndentChild = (path: Path) => {
@@ -87,7 +87,7 @@ export class ItemContainer extends React.PureComponent<Props, State> {
     );
   };
   displayChild = (currentItem: Item, index: number) => {
-    const { selected, select, path, update, item, prev, next } = this.props;
+    const { editing, edit, path, update, item, prev, next } = this.props;
 
     let itemPrev = prev;
     const prevItem = item.children.get(index - 1);
@@ -106,8 +106,8 @@ export class ItemContainer extends React.PureComponent<Props, State> {
     return (
 
       <ItemContainer
-        item={currentItem} key={currentItem.id} selected={selected}
-        select={select} path={itemPath}
+        item={ currentItem } key={ currentItem.id } editing={ editing }
+        edit={ edit } path={ itemPath }
         prev={itemPrev} next={itemNext}
         create={ this.createChildItem }
         indent={ this.indentChild } unIndent={ this.unIndentChild }
@@ -117,11 +117,11 @@ export class ItemContainer extends React.PureComponent<Props, State> {
   };
   handleKeyDown = (e: React.KeyboardEvent) => {
     // console.log(e.key, e.keyCode);
-    const { item, indent, unIndent, create, path, select, prev, remove } = this.props;
+    const { item, indent, unIndent, create, path, edit, prev, remove } = this.props;
     e.stopPropagation(); // don't propagate to parent.
     switch (e.key) {
       case 'ArrowUp':
-        return select(prev);
+        return edit(prev);
       case 'ArrowDown':
         return this.down();
       case 'Enter':
@@ -132,7 +132,7 @@ export class ItemContainer extends React.PureComponent<Props, State> {
           return create(createItem(), path.last());
       // exit edit
       case 'Escape':
-        return this.props.select();
+        return this.props.edit();
       // indent or un-indent
       case 'Tab':
         e.preventDefault();
@@ -156,8 +156,8 @@ export class ItemContainer extends React.PureComponent<Props, State> {
   }
 
   content() {
-    const { path, item, select } = this.props;
-    return (<div className='itemContent' onClick={ () => select(path) }>{ item.text }</div>);
+    const { path, item, edit } = this.props;
+    return (<div className='itemContent' onClick={ () => edit(path) }>{ item.text }</div>);
   };
 
   editing() {
@@ -172,13 +172,13 @@ export class ItemContainer extends React.PureComponent<Props, State> {
   }
 
   down() {
-    const { select, next, item, path } = this.props;
+    const { edit, next, item, path } = this.props;
     if (item.children.size !== 0)
-      select(path.push(0)); // enter next level
+      edit(path.push(0)); // enter next level
     else if (this.isFinallyItem())
       return;
     else
-      select(next);
+      edit(next);
   }
 
   isLastItem(): boolean {
@@ -191,14 +191,17 @@ export class ItemContainer extends React.PureComponent<Props, State> {
     return !path.isEmpty() && next.isEmpty();
   };
 
+  isEditing(): boolean {
+    const { editing, path } = this.props;
+    return editing === undefined ? false : editing.equals(path);
+  }
+
   render() {
-    const { selected, path, item } = this.props;
-    const isSelected = selected ? selected.equals(path) : false;
     return (
       <li onKeyDown={this.handleKeyDown}>
-        { isSelected ? this.editing() : this.content() }
+        { this.isEditing() ? this.editing() : this.content() }
         <ul>
-          { item.children.map(this.displayChild) }
+          { this.props.item.children.map(this.displayChild) }
         </ul>
       </li>
     );
