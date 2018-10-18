@@ -15,7 +15,7 @@ interface State {
 }
 
 
-const rootKeys = List();
+const rootPath = List();
 
 class App extends React.Component<{}, State> {
   edit = (selected?: Path) => this.setState({ selected });
@@ -33,6 +33,13 @@ class App extends React.Component<{}, State> {
     this.state = { root };
   }
 
+  createChild = (item: Item) => {
+    const { root } = this.state;
+    const children = root.children.push(item);
+    const select = () => this.edit(rootPath.push(children.size - 1));
+    return this.update({ ...root, children }, select);
+  };
+
   public render() {
     const { root, selected } = this.state;
 
@@ -40,8 +47,9 @@ class App extends React.Component<{}, State> {
       <main className="App">
         <ul>
           <ItemContainer
-            item={ root } update={ this.update } select={ this.edit } create={ empty }
-            selected={ selected } path={ rootKeys } next={ rootKeys } prev={ rootKeys }
+            item={ root } update={ this.update } select={ this.edit }
+            selected={ selected } path={ rootPath } next={ rootPath } prev={ rootPath }
+            create={ this.createChild }
             indent={ empty } unIndent={ empty } remove={ empty }
           />
         </ul>
