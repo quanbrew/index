@@ -2,7 +2,31 @@
   margin: 2em;
 }
 
-.itemContent {
+.ItemContainer {
+  padding-left: 2em;
+  position: relative;
+}
+
+.editing > .item-content, .editing > .item-content input {
+  background-color: aqua;
+}
+
+.item-content {
+  padding: 0.25em;
+}
+
+.item-content input {
   width: 100%;
+  font-size: 1rem;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ItemContainer::before {
+  content: '·';
+  width: 1em;
   height: 1em;
+  left: 1em;
+  position: absolute;
 }

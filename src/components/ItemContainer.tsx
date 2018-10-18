@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { addChild, createItem, Item } from "../Item";
 import { Path } from "./App";
+import classNames from 'classnames';
 
 
 interface Props {
@@ -156,8 +157,8 @@ export class ItemContainer extends React.PureComponent<Props, State> {
   }
 
   content() {
-    const { path, item, edit } = this.props;
-    return (<div className='itemContent' onClick={ () => edit(path) }>{ item.text }</div>);
+    const { item } = this.props;
+    return (<span>{ item.text }</span>);
   };
 
   editing() {
@@ -181,6 +182,10 @@ export class ItemContainer extends React.PureComponent<Props, State> {
       edit(next);
   }
 
+  isRoot(): boolean {
+    return this.props.path.isEmpty()
+  }
+
   isLastItem(): boolean {
     const { next, path } = this.props;
     return path.size > next.size;
@@ -197,13 +202,18 @@ export class ItemContainer extends React.PureComponent<Props, State> {
   }
 
   render() {
+    const { edit, path, item } = this.props;
+    const isEditing = this.isEditing();
+    const className = classNames('ItemContainer', { editing: isEditing });
     return (
-      <li onKeyDown={this.handleKeyDown}>
-        { this.isEditing() ? this.editing() : this.content() }
-        <ul>
-          { this.props.item.children.map(this.displayChild) }
-        </ul>
-      </li>
+      <div className={ className } onKeyDown={ this.handleKeyDown }>
+        <div className='item-content' onClick={ () => edit(path) }>
+          { isEditing ? this.editing() : this.content() }
+        </div>
+        <div className='children'>
+          { item.children.map(this.displayChild) }
+        </div>
+      </div>
     );
   }
 }

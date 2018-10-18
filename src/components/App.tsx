@@ -44,15 +44,15 @@ class App extends React.Component<{}, State> {
     const { root, selected } = this.state;
 
     return (
-      <main className="App">
-        <ul>
+      <main className='App'>
+        <div className='items'>
           <ItemContainer
             item={ root } update={ this.update } edit={ this.edit }
             editing={ selected } path={ rootPath } next={ rootPath } prev={ rootPath }
             create={ this.createChild }
             indent={ empty } unIndent={ empty } remove={ empty }
           />
-        </ul>
+        </div>
       </main>
     );
   }
