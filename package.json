@@ -9,6 +9,7 @@
     "immutable": "4.0.0-rc.10",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
+    "react-markdown": "^4.0.3",
     "uuid": "^3.3.2"
   },
   "scripts": {

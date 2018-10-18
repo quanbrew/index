@@ -13,6 +13,7 @@
 
 .item-content {
   padding: 0.25em;
+  cursor: text;
 }
 
 .item-content input {

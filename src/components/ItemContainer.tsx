@@ -3,6 +3,8 @@ import { addChild, createItem, Item } from "../Item";
 import { Path } from "./App";
 import classNames from 'classnames';
 
+const ReactMarkdown = require('react-markdown');
+
 
 interface Props {
   item: Item,
@@ -20,6 +22,7 @@ interface Props {
 
 
 interface State {
+  caret?: number;
 }
 
 
@@ -31,6 +34,7 @@ const itemTail = (path: Path, item: Item): Path => {
 
 
 export class ItemContainer extends React.PureComponent<Props, State> {
+  input: React.RefObject<HTMLInputElement>;
   createChildItem = (child = createItem(), after?: number) => {
     const { path, item, edit, update } = this.props;
     const size = item.children.size;
@@ -150,27 +154,24 @@ export class ItemContainer extends React.PureComponent<Props, State> {
         }
     }
   };
+  handleContentClick = () => {
+    if (this.isEditing()) return;
+    const { edit, path } = this.props;
+    const selection = window.getSelection();
+    this.setState({ caret: selection.anchorOffset });
+    edit(path);
+  };
 
   constructor(props: Props) {
     super(props);
     this.state = {};
+    this.input = React.createRef();
   }
 
   content() {
     const { item } = this.props;
-    return (<span>{ item.text }</span>);
+    return (<ReactMarkdown source={ item.text } disallowedTypes={ ['paragraph'] } unwrapDisallowed/>);
   };
-
-  editing() {
-    const { item, update } = this.props;
-    return (
-      <input
-        autoFocus
-        value={ item.text }
-        onChange={ e => update({ ...item, text: e.currentTarget.value }) }
-      />
-    );
-  }
 
   down() {
     const { edit, next, item, path } = this.props;
@@ -180,10 +181,6 @@ export class ItemContainer extends React.PureComponent<Props, State> {
       return;
     else
       edit(next);
-  }
-
-  isRoot(): boolean {
-    return this.props.path.isEmpty()
   }
 
   isLastItem(): boolean {
@@ -201,13 +198,35 @@ export class ItemContainer extends React.PureComponent<Props, State> {
     return editing === undefined ? false : editing.equals(path);
   }
 
+  editing() {
+    const { item, update } = this.props;
+    return (
+      <input
+        autoFocus
+        value={ item.text } ref={ this.input }
+        onChange={ e => update({ ...item, text: e.currentTarget.value }) }
+      />
+    );
+  }
+
+  componentDidUpdate() {
+    const input = this.input.current;
+    const caret = this.state.caret;
+    if (input && caret !== undefined) {
+      input.selectionStart = caret;
+      input.selectionEnd = caret;
+      input.focus();
+      this.setState({ caret: undefined });
+    }
+  };
+
   render() {
-    const { edit, path, item } = this.props;
+    const { item } = this.props;
     const isEditing = this.isEditing();
     const className = classNames('ItemContainer', { editing: isEditing });
     return (
       <div className={ className } onKeyDown={ this.handleKeyDown }>
-        <div className='item-content' onClick={ () => edit(path) }>
+        <div className='item-content' onClick={ this.handleContentClick }>
           { isEditing ? this.editing() : this.content() }
         </div>
         <div className='children'>
