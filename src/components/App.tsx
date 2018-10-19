@@ -1,7 +1,7 @@
 import * as React from 'react';
 import './App.css';
-import { addChild, createItem, Item } from "../Item";
-import { ItemContainer } from "./ItemContainer";
+import { Item, randomTree } from "../Item";
+import { ItemContainer, Modification } from "./ItemContainer";
 import { List } from "immutable";
 import { empty } from "../utils";
 
@@ -23,13 +23,7 @@ class App extends React.Component<{}, State> {
 
   constructor(props: {}) {
     super(props);
-    const root = addChild(
-      createItem('root'),
-      addChild(
-        createItem('foobar'),
-        createItem('hello, world')
-      ),
-    );
+    const root = randomTree();
     this.state = { root };
   }
 
@@ -43,14 +37,22 @@ class App extends React.Component<{}, State> {
   public render() {
     const { root, selected } = this.state;
 
+    const modifying: Modification = {
+      editing: selected,
+      indent: empty,
+      unIndent: empty,
+      remove: empty,
+      create: this.createChild,
+      update: this.update,
+    };
+
     return (
       <main className='App'>
         <div className='items'>
           <ItemContainer
-            item={ root } update={ this.update } edit={ this.edit }
-            editing={ selected } path={ rootPath } next={ rootPath } prev={ rootPath }
-            create={ this.createChild }
-            indent={ empty } unIndent={ empty } remove={ empty }
+            item={ root } edit={ this.edit }
+            path={ rootPath } next={ rootPath } prev={ rootPath }
+            modifying={ modifying }
           />
         </div>
       </main>
