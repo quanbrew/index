@@ -27,13 +27,13 @@ export const addChild = (parent: Item, child: Item, position?: number): Item => 
 };
 
 
-export const randomTree = (threshold: number = 0.7, n: number = 4, level = 0): Item => {
+export const randomTree = (threshold: number = 0.1, n: number = 8, level = 0): Item => {
   const rnd1 = Math.random();
   const rnd2 = String(Math.random() * 100);
   let children = List();
   if (rnd1 > threshold && level < 10) {
-    for (let i = 0; i < Math.random() * 10; i++) {
-      children = children.push(randomTree(threshold, n, level + 1));
+    for (let i = 0; i < Math.random() * 100; i++) {
+      children = children.push(randomTree(threshold * 2, n, level + 1));
     }
   }
   return ({
