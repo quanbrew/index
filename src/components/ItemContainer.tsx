@@ -105,8 +105,6 @@ export class ItemContainer extends React.Component<Props, State> {
     if (index === 0) return;
 
     const { item, modifying } = this.props;
-    if (!modifying)
-      return ItemContainer.modifyWarn();
     const { update } = modifying;
     const prevItem = item.children.get(index - 1, null);
     const indentItem = item.children.get(index, null);
@@ -130,8 +128,6 @@ export class ItemContainer extends React.Component<Props, State> {
 
     const index = path.last() as number;
     const { item, modifying } = this.props;
-    if (!modifying)
-      return ItemContainer.modifyWarn();
     const { update, create } = modifying;
     const currentItem = item.children.get(index);
     // make type checker happy
@@ -141,7 +137,7 @@ export class ItemContainer extends React.Component<Props, State> {
       () => create(currentItem, this.props.path.last())
     );
   };
-  private handleEdit = (target?: Path) => {
+  handleEdit = (target?: Path) => {
     const { path } = this.props;
     if (target === undefined) {
       return;
@@ -206,10 +202,6 @@ export class ItemContainer extends React.Component<Props, State> {
   private handleKeyCommand = (command: string): DraftHandleValue => {
     console.log('command:', command);
     const { item, modifying, path, prev } = this.props;
-    if (!modifying) {
-      ItemContainer.modifyWarn();
-      return 'not-handled';
-    }
     switch (command) {
       case 'backspace':
         if (!item.editor.getCurrentContent().hasText()) {
@@ -220,11 +212,6 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     return 'not-handled';
   };
-
-  static modifyWarn() {
-    console.warn('call modify method on non-editing item');
-    console.trace();
-  }
 
   private onEnter = (): DraftHandleValue => {
     // if content is empty and item is last item in siblings, indent it.
@@ -240,10 +227,6 @@ export class ItemContainer extends React.Component<Props, State> {
   };
   private onTab = (e: React.KeyboardEvent) => {
     const { path, modifying } = this.props;
-    if (!modifying) {
-      ItemContainer.modifyWarn();
-      return;
-    }
     e.preventDefault();
     if (e.shiftKey) {
       return modifying.unIndent(path)
