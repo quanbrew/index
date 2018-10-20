@@ -30,7 +30,7 @@ export const addChild = (parent: Item, child: Item, position?: number): Item => 
 };
 
 
-export const randomTree = (threshold: number = 0.35, n: number = 5, level = 0): Item => {
+export const randomTree = (threshold: number = 0.35, n: number = 3, level = 0): Item => {
   const rnd1 = Math.random();
   const rnd2 = String(Math.random() * 100);
   let children = List();

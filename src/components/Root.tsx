@@ -58,6 +58,7 @@ export class Root extends React.Component<Props, State> {
       remove: empty,
       create: this.createChild,
       update: update,
+      insert: empty,
     };
 
     return (

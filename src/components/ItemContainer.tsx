@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { addChild, createItem, Item } from "../item";
 import { isSubPathOf, Path } from "../path";
-import { DraftHandleValue, Editor, EditorState } from 'draft-js';
+import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
@@ -25,9 +25,10 @@ interface State {
 
 export interface Modification {
   editing?: Path;
+  insert: (path: Path, items: Array<Item>, callback?: () => void) => void;
   indent: (path: Path) => void;
   unIndent: (path: Path) => void;
-  remove: (path: Path, prev?: Path) => void;
+  remove: (path: Path, callback?: () => void) => void;
   update: (next: Item, callback?: () => void) => void;
   create: (item?: Item, after?: number) => void;
 }
@@ -39,9 +40,6 @@ const itemTail = (path: Path, item: Item): Path => {
   if (last === null) return path;
   else return itemTail(path.push(item.children.size - 1), last);
 };
-
-
-
 
 
 export class ItemContainer extends React.Component<Props, State> {
@@ -58,15 +56,6 @@ export class ItemContainer extends React.Component<Props, State> {
       console.log('not found ref');
     }
   };
-  down = () => {
-    const { edit, next, item, path } = this.props;
-    if (item.children.size !== 0)
-      edit(path.push(0)); // enter next level
-    else if (!path.isEmpty() && next.isEmpty())
-      return;
-    else
-      edit(next);
-  };
   private createChildItem = (child = createItem(), after?: number) => {
     const { path, item, modifying, edit } = this.props;
     const { update } = modifying;
@@ -80,17 +69,48 @@ export class ItemContainer extends React.Component<Props, State> {
 
     update(addChild(item, child, position), () => edit(path.push(position)));
   };
-  private removeChild = (path: Path, prev?: Path) => {
-    const index = path.last(undefined);
-    if (index === undefined) return;
+  insertBefore = (target: Path, items: Array<Item>, callback: () => void) => {
+    const { path, modifying } = this.props;
 
-    const { item, modifying, edit } = this.props;
-    const { update } = modifying;
+    // make a updated item
+    function next(item: Item, relative: Path, beInserted: Array<Item>): Item {
+      // console.log(item, relative.toJS(), beInserted);
+      const index = relative.first(null);
+      if (index === null) {
+        console.warn('unexpected relative path!');
+        return item;
+      }
+      if (relative.size === 1) {
+        const children = item.children.splice(index, 0, ...beInserted);
+        return { ...item, children }
+      }
+      else {
+        const child = item.children.get(index, undefined);
+        if (child === undefined) {
+          console.warn('unexpected child index', index, item.children.toJS());
+          return item;
+        }
+        const nextChild = next(child, relative.rest(), items);
+        const children = item.children.set(index, nextChild);
+        return { ...item, children };
+      }
+    }
 
-    update(
-      { ...item, children: item.children.remove(index) },
-      () => edit(prev),
-    )
+    if (target.isEmpty()) {
+      console.warn('try move item to before root.');
+    }
+    else if (path.equals(target)) {
+      // console.warn('unexpected target', target.toJS());
+      modifying.insert(target, items);
+    }
+    else if (isSubPathOf(path, target)) {
+      const item = next(this.props.item, target.slice(path.size), items);
+      this.props.modifying.update(item, callback);
+    }
+    else {
+      // go to parent.
+      modifying.insert(target, items);
+    }
   };
   private indentChild = (path: Path) => {
     const index = path.last(0);
@@ -131,6 +151,16 @@ export class ItemContainer extends React.Component<Props, State> {
       () => create(currentItem, this.props.path.last())
     );
   };
+  private removeChild = (path: Path, callback?: () => void) => {
+    const index = path.last(undefined);
+    if (index === undefined) return;
+
+    const { item, modifying } = this.props;
+    const { update } = modifying;
+
+    update({ ...item, children: item.children.remove(index) }, callback)
+  };
+
   handleEdit = (target?: Path) => {
     const { path } = this.props;
     if (target === undefined) {
@@ -178,6 +208,7 @@ export class ItemContainer extends React.Component<Props, State> {
       remove: this.removeChild,
       indent: this.indentChild,
       unIndent: this.unIndentChild,
+      insert: this.insertBefore,
     };
 
 
@@ -195,11 +226,11 @@ export class ItemContainer extends React.Component<Props, State> {
   };
   private handleKeyCommand = (command: string): DraftHandleValue => {
     console.log('command:', command);
-    const { item, modifying, path, prev } = this.props;
+    const { item, modifying, path, prev, edit } = this.props;
     switch (command) {
       case 'backspace':
         if (!item.editor.getCurrentContent().hasText()) {
-          modifying.remove(path, prev);
+          modifying.remove(path, () => edit(prev));
           return 'handled'
         }
         break
@@ -238,6 +269,49 @@ export class ItemContainer extends React.Component<Props, State> {
     this.setState({ isFocus: false });
   };
 
+  private keyBindingFn = (e: React.KeyboardEvent): string | null => {
+    console.log(e.key, e.keyCode);
+    return getDefaultKeyBinding(e);
+  };
+
+  private onUp = (e: React.KeyboardEvent) => {
+    const { edit, prev, path, item } = this.props;
+    // swap with previous item.
+    if (e.metaKey) {
+      e.preventDefault();
+      if (path.last(0) === 0)
+        return;
+      const { remove, insert } = this.props.modifying;
+      remove(path, () => insert(prev, [item], () => edit(prev)));
+    }
+    // navigate to previous item.
+    else {
+      edit(prev);
+    }
+  };
+
+  private onDown = (e: React.KeyboardEvent) => {
+    const { edit, next, item, path } = this.props;
+    // swap with previous item.
+    if (e.metaKey) {
+      e.preventDefault();
+      // last item
+      if (path.size > next.size)
+        return;
+      const { remove, insert } = this.props.modifying;
+      remove(path, () => insert(next, [item], () => edit(next)));
+    }
+    // navigate to next item.
+    else {
+      if (item.children.size !== 0)
+        edit(path.push(0)); // enter next level
+      else if (!path.isEmpty() && next.isEmpty())
+        return;
+      else
+        edit(next);
+    }
+  };
+
   constructor(props: Props) {
     super(props);
     this.state = { isFocus: false };
@@ -250,17 +324,18 @@ export class ItemContainer extends React.Component<Props, State> {
 
   render() {
     const className = classNames('ItemContainer', { editing: this.state.isFocus });
-    const { item, edit, prev } = this.props;
+    const { item } = this.props;
     return (
       <div className={ className }>
-        <div onClick={ () => this.focus() }>
+        <div>
           <Editor editorState={ item.editor }
                   onTab={ this.onTab }
                   ref={ this.editor }
                   handleReturn={ this.onEnter }
+                  keyBindingFn={ this.keyBindingFn }
                   handleKeyCommand={ this.handleKeyCommand }
-                  onUpArrow={ () => edit(prev) }
-                  onDownArrow={ this.down }
+                  onUpArrow={ this.onUp }
+                  onDownArrow={ this.onDown }
                   onBlur={ this.onBlur }
                   onFocus={ this.onFocus }
                   onChange={ this.handleChange }/>
