@@ -45,13 +45,18 @@ const itemTail = (path: Path, item: Item): Path => {
 
 export class ItemContainer extends React.Component<Props, State> {
   editor: React.RefObject<Editor>;
+  selfDiv: React.RefObject<HTMLDivElement>;
   children: { [position: number]: ItemContainer | null };
   focus = () => {
     if (this.editor.current) {
       this.onFocus();
       this.editor.current.focus();
       const editor = EditorState.moveFocusToEnd(this.props.item.editor);
-      this.props.modifying.update({ ...this.props.item, editor })
+      this.props.modifying.update({ ...this.props.item, editor });
+      if (this.selfDiv.current) {
+        const options: ScrollIntoViewOptions = { behavior: "smooth", block: "nearest", inline: "nearest" };
+        this.selfDiv.current.scrollIntoView(options);
+      }
     }
     else {
       console.log('not found ref');
@@ -180,7 +185,8 @@ export class ItemContainer extends React.Component<Props, State> {
         return console.warn('unexpected index', index, target.toJS());
       const child = this.children[index];
       if (child === undefined || child === null) {
-        console.trace("can't found child", target.toJS(), path.toJS(), this.children);
+        console.warn("can't found child", target.toJS(), path.toJS(), this.children);
+        console.trace();
         return;
       }
       child.handleEdit(target);
@@ -189,14 +195,18 @@ export class ItemContainer extends React.Component<Props, State> {
   private displayChild = (currentItem: Item, index: number) => {
     const { modifying, path, item, prev, next } = this.props;
 
-    let itemPrev = prev;
+    let prevPath = prev;
     const prevItem = item.children.get(index - 1);
 
-    if (index === 0) itemPrev = path; // move to parent
-    else if (prevItem !== undefined)
-      itemPrev = itemTail(path.push(index - 1), prevItem);
+    if (index === 0) prevPath = path; // move to parent
+    else if (prevItem !== undefined) {
+      if (prevItem.expand)
+        prevPath = itemTail(path.push(index - 1), prevItem);
+      else
+        prevPath = path.push(index - 1);
+    }
 
-    const itemNext = index < item.children.size - 1 ? path.push(index + 1) : next;
+    const nextPath = index < item.children.size - 1 ? path.push(index + 1) : next;
 
     const itemPath = path.push(index);
 
@@ -216,7 +226,7 @@ export class ItemContainer extends React.Component<Props, State> {
     return (
       <ItemContainer
         item={ currentItem } key={ currentItem.id } modifying={ itemModifying }
-        path={ itemPath } prev={ itemPrev } next={ itemNext } edit={ this.handleEdit }
+        path={ itemPath } prev={ prevPath } next={ nextPath } edit={ this.handleEdit }
         ref={ child => this.children[index] = child }
       />
     );
@@ -269,6 +279,18 @@ export class ItemContainer extends React.Component<Props, State> {
       case 'toggle-list':
         this.toggle();
         return 'handled';
+      case 'navigate-next':
+        this.navigateNext();
+        return "handled";
+      case 'navigate-prev':
+        this.navigatePrev();
+        return "handled";
+      case 'list-expand':
+        this.toggle(true);
+        return "handled";
+      case 'list-fold':
+        this.toggle(false);
+        return "handled";
     }
     return 'not-handled';
   };
@@ -276,10 +298,26 @@ export class ItemContainer extends React.Component<Props, State> {
   private keyBindingFn = (e: React.KeyboardEvent): string | null => {
     console.log(e.key, e.keyCode);
     const DOT = 190;
+    const J = 74;
+    const K = 75;
+    const L = 76;
+    const H = 72;
     switch (e.keyCode) {
       case DOT:
         if (e.metaKey) return 'toggle-list';
-        else break
+        break;
+      case J:
+        if (e.metaKey) return 'navigate-next';
+        break;
+      case K:
+        if (e.metaKey) return 'navigate-prev';
+        break;
+      case L:
+        if (e.metaKey) return 'list-expand';
+        break;
+      case H:
+        if (e.metaKey) return 'list-fold';
+        break;
     }
     return getDefaultKeyBinding(e);
   };
@@ -296,7 +334,7 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     // navigate to previous item.
     else {
-      edit(prev);
+      this.navigatePrev();
     }
   };
 
@@ -313,31 +351,21 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     // navigate to next item.
     else {
-      if (item.children.size !== 0)
-        edit(path.push(0)); // enter next level
-      else if (!path.isEmpty() && next.isEmpty())
-        return;
-      else
-        edit(next);
+      this.navigateNext();
     }
   };
-
-  private toggle = () => {
+  private toggle = (setExpand?: boolean) => {
     const { item, modifying } = this.props;
-    const expand = !item.expand;
-    modifying.update({ ...item, expand });
+    const expand = setExpand === undefined ? !item.expand : setExpand;
+    modifying.update({ ...item, expand }, this.focus);
   };
-
-
 
   constructor(props: Props) {
     super(props);
     this.state = { isFocus: false };
     this.children = {};
     this.editor = React.createRef();
-  }
-
-  componentDidUpdate(prevProps: Props, prevState: State) {
+    this.selfDiv = React.createRef();
   }
 
   render() {
@@ -346,9 +374,9 @@ export class ItemContainer extends React.Component<Props, State> {
 
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     return (
-      <div className={ className }>
+      <div ref={ this.selfDiv } className={ className }>
         <div>
-          <Bullet onClick={ this.toggle } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
+          <Bullet onClick={ () => this.toggle() } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
           <Editor editorState={ item.editor }
                   onTab={ this.onTab }
                   ref={ this.editor }
@@ -364,5 +392,21 @@ export class ItemContainer extends React.Component<Props, State> {
         { children }
       </div>
     );
+  }
+
+  private navigateNext() {
+    const { edit, next, item, path } = this.props;
+    if (item.children.size !== 0 && item.expand)
+      edit(path.push(0)); // enter next level
+    else if (!path.isEmpty() && next.isEmpty()) return;
+    else edit(next);
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+  }
+
+  private navigatePrev() {
+    const { edit, prev } = this.props;
+    edit(prev);
   }
 }
