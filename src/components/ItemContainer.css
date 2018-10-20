@@ -12,11 +12,3 @@
   padding: 0.25em;
   cursor: text;
 }
-
-.ItemContainer::before {
-  content: '·';
-  width: 1em;
-  height: 1em;
-  left: 1em;
-  position: absolute;
-}

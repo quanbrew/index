@@ -1,0 +1,15 @@
+.bullet {
+  position: absolute;
+  left: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: cornflowerblue;
+  cursor: pointer;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
+
+.bullet:hover {
+  text-shadow: 0 0 2px #000000;
+}

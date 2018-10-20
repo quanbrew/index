@@ -5,6 +5,7 @@ import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'dra
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
+import { Bullet } from "./Bullet";
 
 
 interface Props {
@@ -312,6 +313,14 @@ export class ItemContainer extends React.Component<Props, State> {
     }
   };
 
+
+  private onBulletClick = () => {
+    const { item, modifying } = this.props;
+    const expand = !item.expand;
+    modifying.update({ ...item, expand });
+  };
+
+
   constructor(props: Props) {
     super(props);
     this.state = { isFocus: false };
@@ -325,9 +334,12 @@ export class ItemContainer extends React.Component<Props, State> {
   render() {
     const className = classNames('ItemContainer', { editing: this.state.isFocus });
     const { item } = this.props;
+
+    const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     return (
       <div className={ className }>
         <div>
+          <Bullet onClick={ this.onBulletClick } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
           <Editor editorState={ item.editor }
                   onTab={ this.onTab }
                   ref={ this.editor }
@@ -340,9 +352,7 @@ export class ItemContainer extends React.Component<Props, State> {
                   onFocus={ this.onFocus }
                   onChange={ this.handleChange }/>
         </div>
-        <div className='children'>
-          { item.children.map(this.displayChild) }
-        </div>
+        { children }
       </div>
     );
   }
