@@ -11,7 +11,10 @@ export interface Item {
 }
 
 
-const content = (text: string) => EditorState.createWithContent(ContentState.createFromText(text));
+const content = (text: string) =>
+  EditorState.moveSelectionToEnd(
+    EditorState.createWithContent(ContentState.createFromText(text))
+  );
 
 export const createItem = (text: string = ''): Item => ({
   id: uuid1(),

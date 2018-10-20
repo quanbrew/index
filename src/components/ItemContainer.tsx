@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { addChild, createItem, Item } from "../Item";
-import { Path } from "./App";
+import { isSubPathOf, Path } from "../path";
 import { DraftHandleValue, Editor, EditorState } from 'draft-js';
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
@@ -41,15 +41,7 @@ const itemTail = (path: Path, item: Item): Path => {
 };
 
 
-const isSubPath = (path: Path, subPath: Path): boolean => {
-  if (path.size < subPath.size) {
-    return false;
-  }
-  else {
-    const xs = path.zipWith((a, b) => a === b, subPath);
-    return xs.indexOf(false) === -1;
-  }
-};
+
 
 
 export class ItemContainer extends React.Component<Props, State> {
@@ -146,7 +138,7 @@ export class ItemContainer extends React.Component<Props, State> {
       // console.info(this.props.item.editor.getCurrentContent().getPlainText());
       this.focus();
     }
-    else if (!isSubPath(target, path)) {
+    else if (!isSubPathOf(path, target)) {
       this.props.edit(target);
     }
     else {
