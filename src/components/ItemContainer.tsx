@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { addChild, createItem, Item } from "../Item";
 import { Path } from "./App";
-import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
+import { DraftHandleValue, Editor, EditorState } from 'draft-js';
 import './ItemContainer.css';
+import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
 
 
@@ -12,7 +13,7 @@ interface Props {
   next: Path;
   prev: Path;
   edit: (path?: Path) => void;
-  modifying?: Modification;
+  modifying: Modification;
 }
 
 
@@ -51,13 +52,29 @@ const isSubPath = (path: Path, subPath: Path): boolean => {
 };
 
 
-
 export class ItemContainer extends React.Component<Props, State> {
   editor: React.RefObject<Editor>;
-  createChildItem = (child = createItem(), after?: number) => {
+  children: { [position: number]: ItemContainer | null };
+  focus = () => {
+    if (this.editor.current) {
+      this.onFocus();
+      this.editor.current.focus();
+    }
+    else {
+      console.log('not found ref');
+    }
+  };
+  down = () => {
+    const { edit, next, item, path } = this.props;
+    if (item.children.size !== 0)
+      edit(path.push(0)); // enter next level
+    else if (!path.isEmpty() && next.isEmpty())
+      return;
+    else
+      edit(next);
+  };
+  private createChildItem = (child = createItem(), after?: number) => {
     const { path, item, modifying, edit } = this.props;
-    if (!modifying)
-      return ItemContainer.modifyWarn();
     const { update } = modifying;
     const size = item.children.size;
 
@@ -69,13 +86,11 @@ export class ItemContainer extends React.Component<Props, State> {
 
     update(addChild(item, child, position), () => edit(path.push(position)));
   };
-  removeChild = (path: Path, prev?: Path) => {
+  private removeChild = (path: Path, prev?: Path) => {
     const index = path.last(undefined);
     if (index === undefined) return;
 
     const { item, modifying, edit } = this.props;
-    if (!modifying)
-      return ItemContainer.modifyWarn();
     const { update } = modifying;
 
     update(
@@ -83,13 +98,13 @@ export class ItemContainer extends React.Component<Props, State> {
       () => edit(prev),
     )
   };
-  indentChild = (path: Path) => {
+  private indentChild = (path: Path) => {
     const index = path.last(0);
 
     // first item or root item can't indent
     if (index === 0) return;
 
-    const { item, modifying, edit } = this.props;
+    const { item, modifying } = this.props;
     if (!modifying)
       return ItemContainer.modifyWarn();
     const { update } = modifying;
@@ -106,10 +121,10 @@ export class ItemContainer extends React.Component<Props, State> {
     // update children
     update(
       { ...item, children },
-      () => edit(this.props.path.push(index - 1, prevItem.children.size))
+      () => this.handleEdit(this.props.path.push(index - 1, prevItem.children.size))
     );
   };
-  unIndentChild = (path: Path) => {
+  private unIndentChild = (path: Path) => {
     // root's children can't un-indent
     if (path.size < 2) return;
 
@@ -126,8 +141,32 @@ export class ItemContainer extends React.Component<Props, State> {
       () => create(currentItem, this.props.path.last())
     );
   };
-  displayChild = (currentItem: Item, index: number) => {
-    const { modifying, path, item, prev, next, edit } = this.props;
+  private handleEdit = (target?: Path) => {
+    const { path } = this.props;
+    if (target === undefined) {
+      return;
+    }
+    else if (target.equals(path)) {
+      // console.info(this.props.item.editor.getCurrentContent().getPlainText());
+      this.focus();
+    }
+    else if (!isSubPath(target, path)) {
+      this.props.edit(target);
+    }
+    else {
+      const index = target.get(path.size, null);
+      if (index === null)
+        return console.warn('unexpected index', index, target.toJS());
+      const child = this.children[index];
+      if (child === undefined || child === null) {
+        console.trace("can't found child", target.toJS(), path.toJS(), this.children);
+        return;
+      }
+      child.handleEdit(target);
+    }
+  };
+  private displayChild = (currentItem: Item, index: number) => {
+    const { modifying, path, item, prev, next } = this.props;
 
     let itemPrev = prev;
     const prevItem = item.children.get(index - 1);
@@ -140,140 +179,31 @@ export class ItemContainer extends React.Component<Props, State> {
 
     const itemPath = path.push(index);
 
-    let itemModifying = undefined;
-    if (modifying && modifying.editing && isSubPath(modifying.editing, itemPath)) {
-      const update: typeof modifying.update = (next, callback) =>
-        modifying.update({ ...item, children: item.children.set(index, next) }, callback);
-      itemModifying = {
-        ...modifying,
-        update,
-        create: this.createChildItem,
-        remove: this.removeChild,
-        indent: this.indentChild,
-        unIndent: this.unIndentChild,
-      }
-    }
+    const update: typeof modifying.update = (next, callback) =>
+      modifying.update({ ...item, children: item.children.set(index, next) }, callback);
+    const itemModifying: Modification = {
+      ...modifying,
+      update,
+      create: this.createChildItem,
+      remove: this.removeChild,
+      indent: this.indentChild,
+      unIndent: this.unIndentChild,
+    };
 
 
     return (
       <ItemContainer
         item={ currentItem } key={ currentItem.id } modifying={ itemModifying }
-        path={ itemPath } prev={ itemPrev } next={ itemNext } edit={ edit }
+        path={ itemPath } prev={ itemPrev } next={ itemNext } edit={ this.handleEdit }
+        ref={ child => this.children[index] = child }
       />
     );
   };
-  // handleKeyDown = (e: React.KeyboardEvent) => {
-  //   // console.log(e.key, e.keyCode);
-  //   const { item, indent, unIndent, create, path, edit, prev, remove } = this.props;
-  //   e.stopPropagation(); // don't propagate to parent.
-  //   switch (e.key) {
-  //     case 'ArrowUp':
-  //       return edit(prev);
-  //     case 'ArrowDown':
-  //       return this.down();
-  //     case 'Enter':
-  //       // if content is empty and item is last item in siblings, indent it.
-  //       if (item.text === '' && this.isLastItem() && path.size > 1)
-  //         return unIndent(path);
-  //       else
-  //         return create(createItem(), path.last());
-  //     // exit edit
-  //     case 'Escape':
-  //       return this.props.edit();
-  //     // indent or un-indent
-  //     case 'Tab':
-  //       e.preventDefault();
-  //       if (e.shiftKey) {
-  //         return unIndent(path)
-  //       }
-  //       else {
-  //         return indent(path)
-  //       }
-  //     case 'Backspace':
-  //       if (item.text === '') {
-  //         e.preventDefault();
-  //         return remove(path, prev);
-  //       }
-  //   }
-  // };
-  // handleContentClick = () => {
-  //   if (this.isEditing()) return;
-  //   const { edit, path } = this.props;
-  //   const selection = window.getSelection();
-  //   this.setState({ caret: selection.anchorOffset });
-  //   edit(path);
-  // };
-  handleChange = (editor: EditorState) => {
-    const { modifying, item, edit, path } = this.props;
-    if (modifying)
-      modifying.update({ ...item, editor });
-    else
-      edit(path);
+  private handleChange = (editor: EditorState) => {
+    const { modifying, item } = this.props;
+    modifying.update({ ...item, editor });
   };
-
-  // down() {
-  //   const { edit, next, item, path } = this.props;
-  //   if (item.children.size !== 0)
-  //     edit(path.push(0)); // enter next level
-  //   else if (this.isFinallyItem())
-  //     return;
-  //   else
-  //     edit(next);
-  // }
-
-  onFocus = () => {
-    const { edit, path } = this.props;
-    this.setState({ isFocus: true });
-    edit(path);
-  };
-
-  static isEditorStateChange(current: EditorState, next: EditorState): boolean {
-    // @ts-ignore
-    if (current.getImmutable) {
-      // NOTICE:
-      // This is a ugly workaround.
-      // `getImmutable` not in documents nor in type definition.
-      // @ts-ignore
-      return !current.getImmutable().equals(next.getImmutable());
-    }
-    else if (current.equals) {
-      // `equals` is in the type definition but not in actually object.
-      return !current.equals(next);
-    }
-    else {
-      console.warn('Cannot compare editor state!');
-      // Always return `true`, avoid bug.
-      return true;
-    }
-  }
-
-  onBlur = () => {
-    // console.log('blur:', this.props.item.editor.getCurrentContent().getPlainText());
-    this.setState({ isFocus: false });
-    const { modifying, path, edit } = this.props;
-    if (modifying && modifying.editing === path) {
-      edit()
-    }
-
-  };
-
-  static modifyWarn() {
-    console.warn('call modify method on non-editing item');
-    console.trace();
-  }
-
-  isEditing(): boolean {
-    const { modifying, path } = this.props;
-
-    return modifying !== undefined && modifying.editing !== undefined && modifying.editing.equals(path);
-  }
-
-  keyBindingFn = (e: React.KeyboardEvent): string | null => {
-    // const { hasCommandModifier } = KeyBindingUtil;
-    console.log(e.key, e.keyCode);
-    return getDefaultKeyBinding(e);
-  };
-  handleKeyCommand = (command: string): DraftHandleValue => {
+  private handleKeyCommand = (command: string): DraftHandleValue => {
     console.log('command:', command);
     const { item, modifying, path, prev } = this.props;
     if (!modifying) {
@@ -290,13 +220,15 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     return 'not-handled';
   };
-  onEnter = (): DraftHandleValue => {
+
+  static modifyWarn() {
+    console.warn('call modify method on non-editing item');
+    console.trace();
+  }
+
+  private onEnter = (): DraftHandleValue => {
     // if content is empty and item is last item in siblings, indent it.
     const { item, path, next, modifying } = this.props;
-    if (!modifying) {
-      ItemContainer.modifyWarn();
-      return 'not-handled';
-    }
     const isLastItem = next.size < path.size;
     if (isLastItem && path.size > 1 && !item.editor.getCurrentContent().hasText()) {
       modifying.unIndent(path);
@@ -306,7 +238,7 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     return 'handled';
   };
-  onTab = (e: React.KeyboardEvent) => {
+  private onTab = (e: React.KeyboardEvent) => {
     const { path, modifying } = this.props;
     if (!modifying) {
       ItemContainer.modifyWarn();
@@ -320,55 +252,41 @@ export class ItemContainer extends React.Component<Props, State> {
       return modifying.indent(path)
     }
   };
+  private onFocus = () => {
+    // console.log('focus');
+    this.setState({ isFocus: true })
+  };
+  private onBlur = () => {
+    // console.log('blur');
+    this.setState({ isFocus: false });
+  };
 
   constructor(props: Props) {
     super(props);
     this.state = { isFocus: false };
+    this.children = {};
     this.editor = React.createRef();
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
-    return (
-      this.props.modifying !== undefined
-      || nextProps.modifying !== undefined
-      || this.props.item.expand !== nextProps.item.expand
-      || !this.props.item.children.equals(nextProps.item.children)
-      || ItemContainer.isEditorStateChange(this.props.item.editor, nextProps.item.editor)
-      || this.state.isFocus !== nextState.isFocus
-    );
+  componentDidUpdate(prevProps: Props, prevState: State) {
   }
-
-  sync() {
-    const isEditing = this.isEditing();
-    const editor = this.editor.current;
-    if (editor) {
-      if (isEditing && !this.state.isFocus) {
-        editor.focus();
-        this.setState({ isFocus: true });
-      }
-      else if (!isEditing && this.state.isFocus) {
-        this.setState({ isFocus: false });
-      }
-    }
-  }
-
-  componentDidUpdate() {
-    this.sync();
-  }
-
 
   render() {
     const className = classNames('ItemContainer', { editing: this.state.isFocus });
-    const { item } = this.props;
+    const { item, edit, prev } = this.props;
     return (
       <div className={ className }>
-        <div>
-          <Editor onFocus={ this.onFocus } onBlur={ this.onBlur }
-                  ref={ this.editor } editorState={ item.editor }
+        <div onClick={ () => this.focus() }>
+          <Editor editorState={ item.editor }
                   onTab={ this.onTab }
-                  keyBindingFn={ this.keyBindingFn } handleKeyCommand={ this.handleKeyCommand }
-                  onChange={ this.handleChange } handleReturn={ this.onEnter }
-                  stripPastedStyles/>
+                  ref={ this.editor }
+                  handleReturn={ this.onEnter }
+                  handleKeyCommand={ this.handleKeyCommand }
+                  onUpArrow={ () => edit(prev) }
+                  onDownArrow={ this.down }
+                  onBlur={ this.onBlur }
+                  onFocus={ this.onFocus }
+                  onChange={ this.handleChange }/>
         </div>
         <div className='children'>
           { item.children.map(this.displayChild) }

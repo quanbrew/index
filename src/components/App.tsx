@@ -11,18 +11,33 @@ export type Path = List<number>;
 
 interface State {
   root: Item;
-  selected?: Path;
 }
 
 
 const rootPath = List();
 
 class App extends React.Component<{}, State> {
-  edit = (selected?: Path) => this.setState({ selected });
+  root: React.RefObject<ItemContainer>;
+  edit = (target?: Path) => {
+    if (target === undefined)
+      return;
+    else if (this.root.current) {
+      const index = target.first(null);
+      if (index === null)
+        this.root.current.focus();
+      else {
+        const child = this.root.current.children[index];
+        if (child !== null && child !== undefined) {
+          child.handleEdit(target);
+        }
+      }
+    }
+  };
   update = (root: Item, callback?: () => void) => this.setState({ root }, callback);
 
   constructor(props: {}) {
     super(props);
+    this.root = React.createRef();
     const root = randomTree();
     this.state = { root };
   }
@@ -34,11 +49,12 @@ class App extends React.Component<{}, State> {
     return this.update({ ...root, children }, select);
   };
 
+
   public render() {
-    const { root, selected } = this.state;
+    const { root } = this.state;
 
     const modifying: Modification = {
-      editing: selected,
+      editing: undefined,
       indent: empty,
       unIndent: empty,
       remove: empty,
@@ -50,6 +66,7 @@ class App extends React.Component<{}, State> {
       <main className='App'>
         <div className='items'>
           <ItemContainer
+            ref={ this.root }
             item={ root } edit={ this.edit }
             path={ rootPath } next={ rootPath } prev={ rootPath }
             modifying={ modifying }
