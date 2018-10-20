@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { addChild, createItem, Item } from "../Item";
+import { addChild, createItem, Item } from "../item";
 import { isSubPathOf, Path } from "../path";
 import { DraftHandleValue, Editor, EditorState } from 'draft-js';
 import './ItemContainer.css';
@@ -51,6 +51,8 @@ export class ItemContainer extends React.Component<Props, State> {
     if (this.editor.current) {
       this.onFocus();
       this.editor.current.focus();
+      const editor = EditorState.moveFocusToEnd(this.props.item.editor);
+      this.props.modifying.update({ ...this.props.item, editor })
     }
     else {
       console.log('not found ref');
