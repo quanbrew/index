@@ -49,10 +49,16 @@ export class ItemContainer extends React.Component<Props, State> {
   children: { [position: number]: ItemContainer | null };
   focus = () => {
     if (this.editor.current) {
-      this.onFocus();
-      this.editor.current.focus();
       const editor = EditorState.moveFocusToEnd(this.props.item.editor);
-      this.props.modifying.update({ ...this.props.item, editor });
+      this.props.modifying.update({ ...this.props.item, editor }, () => {
+        if (this.editor.current) {
+          this.editor.current.focus();
+          this.onFocus();
+        }
+        else {
+          console.warn("can't found editor ref")
+        }
+      });
       if (this.selfDiv.current) {
         const options: ScrollIntoViewOptions = { behavior: "smooth", block: "nearest", inline: "nearest" };
         this.selfDiv.current.scrollIntoView(options);
@@ -258,11 +264,11 @@ export class ItemContainer extends React.Component<Props, State> {
     }
   };
   private onFocus = () => {
-    // console.log('focus');
+    console.log('focus', this.props.item.editor.getCurrentContent().getPlainText());
     this.setState({ isFocus: true })
   };
   private onBlur = () => {
-    // console.log('blur');
+    console.log('blur', this.props.item.editor.getCurrentContent().getPlainText());
     this.setState({ isFocus: false });
   };
 
@@ -307,7 +313,10 @@ export class ItemContainer extends React.Component<Props, State> {
         if (e.metaKey) return 'toggle-list';
         break;
       case J:
-        if (e.metaKey) return 'navigate-next';
+        if (e.metaKey) {
+          e.preventDefault();
+          return 'navigate-next'
+        }
         break;
       case K:
         if (e.metaKey) return 'navigate-prev';
