@@ -225,20 +225,6 @@ export class ItemContainer extends React.Component<Props, State> {
     const { modifying, item } = this.props;
     modifying.update({ ...item, editor });
   };
-  private handleKeyCommand = (command: string): DraftHandleValue => {
-    console.log('command:', command);
-    const { item, modifying, path, prev, edit } = this.props;
-    switch (command) {
-      case 'backspace':
-        if (!item.editor.getCurrentContent().hasText()) {
-          modifying.remove(path, () => edit(prev));
-          return 'handled'
-        }
-        break
-    }
-    return 'not-handled';
-  };
-
   private onEnter = (): DraftHandleValue => {
     // if content is empty and item is last item in siblings, indent it.
     const { item, path, next, modifying } = this.props;
@@ -270,8 +256,31 @@ export class ItemContainer extends React.Component<Props, State> {
     this.setState({ isFocus: false });
   };
 
+  private handleKeyCommand = (command: string): DraftHandleValue => {
+    console.log('command:', command);
+    const { item, modifying, path, prev, edit } = this.props;
+    switch (command) {
+      case 'backspace':
+        if (!item.editor.getCurrentContent().hasText()) {
+          modifying.remove(path, () => edit(prev));
+          return 'handled'
+        }
+        break;
+      case 'toggle-list':
+        this.toggle();
+        return 'handled';
+    }
+    return 'not-handled';
+  };
+
   private keyBindingFn = (e: React.KeyboardEvent): string | null => {
     console.log(e.key, e.keyCode);
+    const DOT = 190;
+    switch (e.keyCode) {
+      case DOT:
+        if (e.metaKey) return 'toggle-list';
+        else break
+    }
     return getDefaultKeyBinding(e);
   };
 
@@ -313,12 +322,12 @@ export class ItemContainer extends React.Component<Props, State> {
     }
   };
 
-
-  private onBulletClick = () => {
+  private toggle = () => {
     const { item, modifying } = this.props;
     const expand = !item.expand;
     modifying.update({ ...item, expand });
   };
+
 
 
   constructor(props: Props) {
@@ -339,7 +348,7 @@ export class ItemContainer extends React.Component<Props, State> {
     return (
       <div className={ className }>
         <div>
-          <Bullet onClick={ this.onBulletClick } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
+          <Bullet onClick={ this.toggle } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
           <Editor editorState={ item.editor }
                   onTab={ this.onTab }
                   ref={ this.editor }
