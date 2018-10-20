@@ -271,7 +271,7 @@ export class ItemContainer extends React.Component<Props, State> {
     const { item, modifying, path, prev, edit } = this.props;
     switch (command) {
       case 'backspace':
-        if (!item.editor.getCurrentContent().hasText()) {
+        if (!item.editor.getCurrentContent().hasText() && item.children.isEmpty()) {
           modifying.remove(path, () => edit(prev));
           return 'handled'
         }
