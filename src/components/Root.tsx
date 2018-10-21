@@ -52,7 +52,6 @@ export class Root extends React.Component<Props, State> {
     const { item, update } = this.props;
 
     const modifying: Modification = {
-      editing: undefined,
       indent: empty,
       unIndent: empty,
       remove: empty,

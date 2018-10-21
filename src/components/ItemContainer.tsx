@@ -25,7 +25,6 @@ interface State {
 
 
 export interface Modification {
-  editing?: Path;
   insert: (path: Path, items: Array<Item>, callback?: () => void) => void;
   indent: (path: Path) => void;
   unIndent: (path: Path) => void;
@@ -400,6 +399,35 @@ export class ItemContainer extends React.Component<Props, State> {
         </div>
         { children }
       </div>
+    );
+  }
+
+  static isEditorStateChange(current: EditorState, next: EditorState): boolean {
+    // @ts-ignore
+    if (current.getImmutable) {
+      // NOTICE:
+      // This is a ugly workaround.
+      // `getImmutable` not in documents nor in type definition.
+      // @ts-ignore
+      return !current.getImmutable().equals(next.getImmutable());
+    }
+    else if (current.equals) {
+      // `equals` is in the type definition but not in actually object.
+      return !current.equals(next);
+    }
+    else {
+      console.warn('Cannot compare editor state!');
+      // Always return `true`, avoid bug.
+      return true;
+    }
+  }
+
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+    return (
+      this.props.item.expand !== nextProps.item.expand
+      || !this.props.item.children.equals(nextProps.item.children)
+      || ItemContainer.isEditorStateChange(this.props.item.editor, nextProps.item.editor)
+      || this.state.isFocus !== nextState.isFocus
     );
   }
 
