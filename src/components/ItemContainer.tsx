@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { addChild, createItem, Item } from "../item";
+import { createItem, insert, Item, remove, update } from "../item";
 import { isSubPathOf, Path } from "../path";
 import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import './ItemContainer.css';
@@ -14,23 +14,13 @@ interface Props {
   next: Path;
   prev: Path;
   edit: (path?: Path) => void;
-  modifying: Modification;
+  updateTree: (mapper: (prev: Item) => Item, callback?: () => void) => void;
 }
 
 
 interface State {
   caret?: number;
   isFocus: boolean;
-}
-
-
-export interface Modification {
-  insert: (path: Path, items: Array<Item>, callback?: () => void) => void;
-  indent: (path: Path) => void;
-  unIndent: (path: Path) => void;
-  remove: (path: Path, callback?: () => void) => void;
-  update: (next: Item, callback?: () => void) => void;
-  create: (item?: Item, after?: number) => void;
 }
 
 
@@ -47,129 +37,77 @@ export class ItemContainer extends React.Component<Props, State> {
   selfDiv: React.RefObject<HTMLDivElement>;
   children: { [position: number]: ItemContainer | null };
   focus = () => {
-    if (this.editor.current) {
-      const editor = EditorState.moveFocusToEnd(this.props.item.editor);
-      this.props.modifying.update({ ...this.props.item, editor }, () => {
-        if (this.editor.current) {
-          this.editor.current.focus();
-          this.onFocus();
-        }
-        else {
-          console.warn("can't found editor ref")
-        }
-      });
-      if (this.selfDiv.current) {
-        const options: ScrollIntoViewOptions = { behavior: "smooth", block: "nearest", inline: "nearest" };
-        this.selfDiv.current.scrollIntoView(options);
+    if (!this.editor.current) {
+      return console.warn('editor ref not found');
+    }
+    const { item } = this.props;
+    const editor = EditorState.moveFocusToEnd(item.editor);
+    this.update({ ...item, editor }, () => {
+
+      if (!this.editor.current) {
+        return console.warn('editor ref not found');
       }
+      this.editor.current.focus();
+      this.onFocus();
+    });
+    if (this.selfDiv.current) {
+      const options: ScrollIntoViewOptions = { behavior: "smooth", block: "nearest", inline: "nearest" };
+      this.selfDiv.current.scrollIntoView(options);
+    }
+  };
+  private indent = () => {
+    const { updateTree, path, item, edit, prev } = this.props;
+    let next = prev;
+    if (prev.size === path.size) {
+      next = prev.push(0);
+    }
+    else if (prev.size > path.size) {
+      next = prev.slice(0, path.size + 1).update(path.size, x => x + 1);
     }
     else {
-      console.log('not found ref');
+      return;
     }
+    updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
   };
-  private createChildItem = (child = createItem(), after?: number) => {
-    const { path, item, modifying, edit } = this.props;
-    const { update } = modifying;
-    const size = item.children.size;
-
-    // compute insert position
-    let position = size;
-    if (after !== undefined) {
-      if (after + 1 < size) position = after + 1;
-    }
-
-    update(addChild(item, child, position), () => edit(path.push(position)));
-  };
-  insertBefore = (target: Path, items: Array<Item>, callback: () => void) => {
-    const { path, modifying } = this.props;
-
-    // make a updated item
-    function next(item: Item, relative: Path, beInserted: Array<Item>): Item {
-      // console.log(item, relative.toJS(), beInserted);
-      const index = relative.first(null);
-      if (index === null) {
-        console.warn('unexpected relative path!');
-        return item;
-      }
-      if (relative.size === 1) {
-        const children = item.children.splice(index, 0, ...beInserted);
-        return { ...item, children }
-      }
-      else {
-        const child = item.children.get(index, undefined);
-        if (child === undefined) {
-          console.warn('unexpected child index', index, item.children.toJS());
-          return item;
-        }
-        const nextChild = next(child, relative.rest(), items);
-        const children = item.children.set(index, nextChild);
-        return { ...item, children };
-      }
-    }
-
-    if (target.isEmpty()) {
-      console.warn('try move item to before root.');
-    }
-    else if (path.equals(target)) {
-      // console.warn('unexpected target', target.toJS());
-      modifying.insert(target, items);
-    }
-    else if (isSubPathOf(path, target)) {
-      const item = next(this.props.item, target.slice(path.size), items);
-      this.props.modifying.update(item, callback);
-    }
-    else {
-      // go to parent.
-      modifying.insert(target, items);
-    }
-  };
-  private indentChild = (path: Path) => {
-    const index = path.last(0);
-
-    // first item or root item can't indent
-    if (index === 0) return;
-
-    const { item, modifying } = this.props;
-    const { update } = modifying;
-    const prevItem = item.children.get(index - 1, null);
-    const indentItem = item.children.get(index, null);
-    // make type checker happy
-    if (prevItem === null || indentItem === null)
-      return console.error('unexpected index', index);
-
-    // move indent item as previous item's child.
-    const children = item.children
-      .splice(index - 1, 2, addChild(prevItem, indentItem));
-
-    // update children
-    update(
-      { ...item, children },
-      () => this.handleEdit(this.props.path.push(index - 1, prevItem.children.size))
-    );
-  };
-  private unIndentChild = (path: Path) => {
-    // root's children can't un-indent
+  private unIndent = () => {
+    const { updateTree, path, item, edit } = this.props;
     if (path.size < 2) return;
-
-    const index = path.last() as number;
-    const { item, modifying } = this.props;
-    const { update, create } = modifying;
-    const currentItem = item.children.get(index);
-    // make type checker happy
-    if (currentItem === undefined) return console.error('unexpected index', index);
-    update(
-      { ...item, children: item.children.remove(index) },
-      () => create(currentItem, this.props.path.last())
-    );
+    const parent = path.pop();
+    const next = parent.update(parent.size - 1, x => x + 1);
+    updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
   };
-  private removeChild = (path: Path, callback?: () => void) => {
-    const index = path.last(undefined);
-    if (index === undefined) return;
+  private remove = () => {
+    const { updateTree, path, edit, prev } = this.props;
+    const index = path.last(null);
+    if (index === null) return;
+    updateTree(tree => remove(tree, path), () => edit(prev));
+  };
+  private displayChild = (currentItem: Item, index: number) => {
+    const { path, item, prev, next } = this.props;
 
-    const { item, modifying } = this.props;
-    const { update } = modifying;
+    let prevPath = prev;
+    const prevItem = item.children.get(index - 1);
 
-    update({ ...item, children: item.children.remove(index) }, callback)
+    if (index === 0) prevPath = path; // move to parent
+    else if (prevItem !== undefined) {
+      if (prevItem.expand)
+        prevPath = itemTail(path.push(index - 1), prevItem);
+      else
+        prevPath = path.push(index - 1);
+    }
+
+    const nextPath = index < item.children.size - 1 ? path.push(index + 1) : next;
+
+    const itemPath = path.push(index);
+
+
+    return (
+      <ItemContainer
+        item={ currentItem } key={ currentItem.id }
+        path={ itemPath } prev={ prevPath } next={ nextPath } edit={ this.handleEdit }
+        ref={ child => this.children[index] = child } updateTree={ this.props.updateTree }
+      />
+    );
   };
 
   handleEdit = (target?: Path) => {
@@ -197,87 +135,39 @@ export class ItemContainer extends React.Component<Props, State> {
       child.handleEdit(target);
     }
   };
-  private displayChild = (currentItem: Item, index: number) => {
-    const { modifying, path, item, prev, next } = this.props;
-
-    let prevPath = prev;
-    const prevItem = item.children.get(index - 1);
-
-    if (index === 0) prevPath = path; // move to parent
-    else if (prevItem !== undefined) {
-      if (prevItem.expand)
-        prevPath = itemTail(path.push(index - 1), prevItem);
-      else
-        prevPath = path.push(index - 1);
-    }
-
-    const nextPath = index < item.children.size - 1 ? path.push(index + 1) : next;
-
-    const itemPath = path.push(index);
-
-    const update: typeof modifying.update = (next, callback) =>
-      modifying.update({ ...item, children: item.children.set(index, next) }, callback);
-    const itemModifying: Modification = {
-      ...modifying,
-      update,
-      create: this.createChildItem,
-      remove: this.removeChild,
-      indent: this.indentChild,
-      unIndent: this.unIndentChild,
-      insert: this.insertBefore,
-    };
-
-
-    return (
-      <ItemContainer
-        item={ currentItem } key={ currentItem.id } modifying={ itemModifying }
-        path={ itemPath } prev={ prevPath } next={ nextPath } edit={ this.handleEdit }
-        ref={ child => this.children[index] = child }
-      />
-    );
-  };
   private handleChange = (editor: EditorState) => {
-    const { modifying, item } = this.props;
-    modifying.update({ ...item, editor });
+    const { item } = this.props;
+    this.update({ ...item, editor });
   };
   private onEnter = (): DraftHandleValue => {
     // if content is empty and item is last item in siblings, indent it.
-    const { item, path, next, modifying } = this.props;
+    const { item, path, next, updateTree, edit } = this.props;
     const isLastItem = next.size < path.size;
     if (isLastItem && path.size > 1 && !item.editor.getCurrentContent().hasText()) {
-      modifying.unIndent(path);
+      this.unIndent();
     }
     else {
-      modifying.create(createItem(), path.last());
+      const createPath = path.set(path.size - 1, path.last(-1) + 1);
+      updateTree(tree => insert(tree, [createItem()], createPath), () => edit(createPath));
     }
     return 'handled';
   };
   private onTab = (e: React.KeyboardEvent) => {
-    const { path, modifying } = this.props;
     e.preventDefault();
     if (e.shiftKey) {
-      return modifying.unIndent(path)
+      return this.unIndent()
     }
     else {
-      return modifying.indent(path)
+      return this.indent()
     }
   };
-  private onFocus = () => {
-    console.log('focus', this.props.item.editor.getCurrentContent().getPlainText());
-    this.setState({ isFocus: true })
-  };
-  private onBlur = () => {
-    console.log('blur', this.props.item.editor.getCurrentContent().getPlainText());
-    this.setState({ isFocus: false });
-  };
-
   private handleKeyCommand = (command: string): DraftHandleValue => {
     console.log('command:', command);
-    const { item, modifying, path, prev, edit } = this.props;
+    const { item } = this.props;
     switch (command) {
       case 'backspace':
         if (!item.editor.getCurrentContent().hasText() && item.children.isEmpty()) {
-          modifying.remove(path, () => edit(prev));
+          this.remove();
           return 'handled'
         }
         break;
@@ -298,6 +188,28 @@ export class ItemContainer extends React.Component<Props, State> {
         return "handled";
     }
     return 'not-handled';
+  };
+  private onFocus = () => {
+    console.log('focus', this.props.item.editor.getCurrentContent().getPlainText());
+    this.setState({ isFocus: true })
+  };
+  private onBlur = () => {
+    console.log('blur', this.props.item.editor.getCurrentContent().getPlainText());
+    this.setState({ isFocus: false });
+  };
+  private onUp = (e: React.KeyboardEvent) => {
+    const { edit, prev, path, item, updateTree } = this.props;
+    // swap with previous item.
+    if (e.metaKey) {
+      e.preventDefault();
+      if (path.last(0) === 0)
+        return;
+      updateTree(tree => insert(remove(tree, path), [item], prev), () => edit(prev))
+    }
+    // navigate to previous item.
+    else {
+      this.navigatePrev();
+    }
   };
 
   private keyBindingFn = (e: React.KeyboardEvent): string | null => {
@@ -329,33 +241,15 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     return getDefaultKeyBinding(e);
   };
-
-  private onUp = (e: React.KeyboardEvent) => {
-    const { edit, prev, path, item } = this.props;
-    // swap with previous item.
-    if (e.metaKey) {
-      e.preventDefault();
-      if (path.last(0) === 0)
-        return;
-      const { remove, insert } = this.props.modifying;
-      remove(path, () => insert(prev, [item], () => edit(prev)));
-    }
-    // navigate to previous item.
-    else {
-      this.navigatePrev();
-    }
-  };
-
   private onDown = (e: React.KeyboardEvent) => {
-    const { edit, next, item, path } = this.props;
+    const { edit, next, item, path, updateTree } = this.props;
     // swap with previous item.
     if (e.metaKey) {
       e.preventDefault();
       // last item
       if (path.size > next.size)
         return;
-      const { remove, insert } = this.props.modifying;
-      remove(path, () => insert(next, [item], () => edit(next)));
+      updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
     }
     // navigate to next item.
     else {
@@ -363,10 +257,20 @@ export class ItemContainer extends React.Component<Props, State> {
     }
   };
   private toggle = (setExpand?: boolean) => {
-    const { item, modifying } = this.props;
+    const { item } = this.props;
     const expand = setExpand === undefined ? !item.expand : setExpand;
-    modifying.update({ ...item, expand }, this.focus);
+    this.update({ ...item, expand }, this.focus);
   };
+
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+    return (
+      this.props.item.expand !== nextProps.item.expand
+      || !this.props.item.children.equals(nextProps.item.children)
+      || this.state.isFocus !== nextState.isFocus
+      || ItemContainer.isEditorStateChange(this.props.item.editor, nextProps.item.editor)
+      || this.props.updateTree !== nextProps.updateTree
+    );
+  }
 
   constructor(props: Props) {
     super(props);
@@ -422,13 +326,9 @@ export class ItemContainer extends React.Component<Props, State> {
     }
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
-    return (
-      this.props.item.expand !== nextProps.item.expand
-      || !this.props.item.children.equals(nextProps.item.children)
-      || ItemContainer.isEditorStateChange(this.props.item.editor, nextProps.item.editor)
-      || this.state.isFocus !== nextState.isFocus
-    );
+  private update(item: Item, callback?: () => void) {
+    const { updateTree, path } = this.props;
+    updateTree(tree => update(tree, item, path), callback)
   }
 
   private navigateNext() {

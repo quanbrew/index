@@ -1,5 +1,6 @@
 import { List } from "immutable";
 import { ContentState, EditorState } from "draft-js";
+import { Path } from "./path";
 
 const uuid1 = require('uuid/v1');
 
@@ -30,7 +31,7 @@ export const addChild = (parent: Item, child: Item, position?: number): Item => 
 };
 
 
-export const randomTree = (threshold: number = 0.35, n: number = 3, level = 0): Item => {
+export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): Item => {
   const rnd1 = Math.random();
   const rnd2 = String(Math.random() * 100);
   let children = List();
@@ -45,4 +46,82 @@ export const randomTree = (threshold: number = 0.35, n: number = 3, level = 0): 
     editor: content(rnd2),
     expand: true,
   })
+};
+
+
+export const remove = (item: Item, path: Path, amount: number = 1): Item => {
+  const index = path.first(null);
+  if (index === null) {
+    console.error('unexpected path');
+    return item;
+  }
+  else if (item.children.size <= index) {
+    console.error('not found child');
+    return item;
+  }
+  else if (path.size === 1) {
+    const children = item.children.splice(index, amount);
+    return { ...item, children };
+  }
+  else {
+    const next = item.children.get(index) as Item;
+    const children = item.children.set(index, remove(next, path.rest()));
+    return { ...item, children };
+  }
+};
+
+
+export const append = (tree: Item, items: Array<Item>, parent: Path): Item => {
+  const index = parent.first(null);
+  if (index === null) {
+    const children = tree.children.push(...items);
+    return { ...tree, children };
+  }
+  else {
+    const next = tree.children.get(index, null);
+    if (next === null) {
+      console.error('unexpected path', tree.children.toJS(), parent.toJS());
+      return tree;
+    }
+    const children = tree.children.set(index, append(next, items, parent.rest()));
+    return { ...tree, children };
+  }
+};
+
+
+export const insert = (tree: Item, items: Array<Item>, path: Path, remove: number = 0): Item => {
+  const index = path.first(null);
+  if (index === null) {
+    console.error('unexpected path');
+    return tree;
+  }
+  else if (path.size === 1) {
+    if (tree.children.size < index) {
+      console.error('unexpected index');
+      return tree;
+    }
+    else {
+      const children = tree.children.splice(index, remove, ...items);
+      return { ...tree, children };
+    }
+  }
+  else {
+    const next = tree.children.get(index, null);
+    if (next === null) {
+      console.error('unexpected path', tree.children.toJS(), path.toJS());
+      return tree;
+    }
+    const children = tree.children.set(index, insert(next, items, path.rest(), remove));
+    return { ...tree, children };
+  }
+};
+
+
+export const update = (tree: Item, item: Item, path: Path): Item => {
+  if (path.isEmpty()) {
+    return item;
+  }
+  else {
+    return insert(tree, [item], path, 1);
+  }
 };

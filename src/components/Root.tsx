@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Item } from "../item";
-import { ItemContainer, Modification } from "./ItemContainer";
-import { empty } from "../utils";
+import { ItemContainer } from "./ItemContainer";
 import { Path } from "../path";
 import { List } from "immutable";
 
@@ -26,8 +25,9 @@ export class Root extends React.Component<Props, State> {
       return;
     else if (this.root.current) {
       const index = target.first(null);
-      if (index === null)
+      if (index === null) {
         this.root.current.focus();
+      }
       else {
         const child = this.root.current.children[index];
         if (child !== null && child !== undefined) {
@@ -36,11 +36,10 @@ export class Root extends React.Component<Props, State> {
       }
     }
   };
-  createChild = (child: Item) => {
-    const { item, update } = this.props;
-    const children = item.children.push(child);
-    const select = () => this.edit(rootPath.push(children.size - 1));
-    return update({ ...item, children }, select);
+
+  updateRoot = (mapper: (tree: Item) => Item, callback?: () => void) => {
+    const root = mapper(this.props.item);
+    this.props.update(root, callback);
   };
 
   constructor(props: Props) {
@@ -49,16 +48,7 @@ export class Root extends React.Component<Props, State> {
   }
 
   public render() {
-    const { item, update } = this.props;
-
-    const modifying: Modification = {
-      indent: empty,
-      unIndent: empty,
-      remove: empty,
-      create: this.createChild,
-      update: update,
-      insert: empty,
-    };
+    const { item } = this.props;
 
     return (
       <div className='items'>
@@ -66,7 +56,7 @@ export class Root extends React.Component<Props, State> {
           ref={ this.root }
           item={ item } edit={ this.edit }
           path={ rootPath } next={ rootPath } prev={ rootPath }
-          modifying={ modifying }
+          updateTree={ this.updateRoot }
         />
       </div>
     );
