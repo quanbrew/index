@@ -1,4 +1,4 @@
-Memoko
+iooo
 ==========
 
-Let memoko organize your knowledge
+Let iooo organize your knowledge
