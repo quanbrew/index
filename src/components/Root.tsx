@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Item } from "../item";
+import { Item, Path } from "../item";
 import { ItemContainer } from "./ItemContainer";
-import { Path } from "../item";
 import { List } from "immutable";
 
 
@@ -20,20 +19,16 @@ const rootPath = List();
 
 export class Root extends React.Component<Props, State> {
   root: React.RefObject<ItemContainer>;
-  edit = (target?: Path) => {
-    if (target === undefined)
-      return;
-    else if (this.root.current) {
-      const index = target.first(null);
-      if (index === null) {
-        this.root.current.focus();
-      }
-      else {
-        const child = this.root.current.children[index];
-        if (child !== null && child !== undefined) {
-          child.handleEdit(target);
-        }
-      }
+  edit = (target: Path) => {
+    let index = target.first(null);
+    let node = this.root.current;
+    while (index !== null && node) {
+      node = node.children[index];
+      target = target.rest();
+      index = target.first(null);
+    }
+    if (node) {
+      node.focus();
     }
   };
 

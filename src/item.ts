@@ -1,5 +1,5 @@
-import {List} from "immutable";
-import {ContentState, EditorState} from "draft-js";
+import { List } from "immutable";
+import { ContentState, EditorState } from "draft-js";
 
 const uuid1 = require('uuid/v1');
 
@@ -11,10 +11,7 @@ export interface Item {
 }
 
 
-const content = (text: string) =>
-  EditorState.moveSelectionToEnd(
-    EditorState.createWithContent(ContentState.createFromText(text))
-  );
+const content = (text: string) => EditorState.createWithContent(ContentState.createFromText(text));
 
 export const createItem = (text: string = ''): Item => ({
   id: uuid1(),
@@ -133,4 +130,11 @@ export const update = (tree: Item, item: Item, path: Path): Item => {
   else {
     return insert(tree, [item], path, 1);
   }
+};
+
+// Get last descendant item
+export const itemTail = (path: Path, item: Item): Path => {
+  const last = item.children.last(null);
+  if (last === null) return path;
+  else return itemTail(path.push(item.children.size - 1), last);
 };
