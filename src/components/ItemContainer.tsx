@@ -1,11 +1,10 @@
 import * as React from 'react';
-import {createItem, insert, isSubPathOf, Item, remove, update} from "../item";
-import { Path } from "../item";
-import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
+import {createItem, insert, isSubPathOf, Item, Path, remove, update} from "../item";
+import {DraftHandleValue, Editor, EditorState, getDefaultKeyBinding} from 'draft-js';
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
-import { Bullet } from "./Bullet";
+import {Bullet} from "./Bullet";
 
 
 interface Props {
@@ -262,16 +261,6 @@ export class ItemContainer extends React.Component<Props, State> {
     this.update({ ...item, expand }, this.focus);
   };
 
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
-    return (
-      this.props.item.expand !== nextProps.item.expand
-      || !this.props.item.children.equals(nextProps.item.children)
-      || this.state.isFocus !== nextState.isFocus
-      || ItemContainer.isEditorStateChange(this.props.item.editor, nextProps.item.editor)
-      || this.props.updateTree !== nextProps.updateTree
-    );
-  }
-
   constructor(props: Props) {
     super(props);
     this.state = { isFocus: false };
@@ -306,24 +295,14 @@ export class ItemContainer extends React.Component<Props, State> {
     );
   }
 
-  static isEditorStateChange(current: EditorState, next: EditorState): boolean {
-    // @ts-ignore
-    if (current.getImmutable) {
-      // NOTICE:
-      // This is a ugly workaround.
-      // `getImmutable` not in documents nor in type definition.
-      // @ts-ignore
-      return !current.getImmutable().equals(next.getImmutable());
-    }
-    else if (current.equals) {
-      // `equals` is in the type definition but not in actually object.
-      return !current.equals(next);
-    }
-    else {
-      console.warn('Cannot compare editor state!');
-      // Always return `true`, avoid bug.
-      return true;
-    }
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+    return (
+      this.props.item.expand !== nextProps.item.expand
+      || !this.props.item.children.equals(nextProps.item.children)
+      || this.state.isFocus !== nextState.isFocus
+      || this.props.item.editor !== nextProps.item.editor
+      || this.props.updateTree !== nextProps.updateTree
+    );
   }
 
   private update(item: Item, callback?: () => void) {
