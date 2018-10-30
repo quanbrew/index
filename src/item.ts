@@ -1,6 +1,5 @@
-import { List } from "immutable";
-import { ContentState, EditorState } from "draft-js";
-import { Path } from "./path";
+import {List} from "immutable";
+import {ContentState, EditorState} from "draft-js";
 
 const uuid1 = require('uuid/v1');
 
@@ -49,6 +48,16 @@ export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): 
 };
 
 
+export type Path = List<number>;
+export const isSubPathOf = (subPath: Path, path: Path): boolean => {
+  if (path.size < subPath.size) {
+    return false;
+  }
+  else {
+    const xs = path.zipWith((a, b) => a === b, subPath);
+    return xs.indexOf(false) === -1;
+  }
+};
 export const remove = (item: Item, path: Path, amount: number = 1): Item => {
   const index = path.first(null);
   if (index === null) {

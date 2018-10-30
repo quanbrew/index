@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { createItem, insert, Item, remove, update } from "../item";
-import { isSubPathOf, Path } from "../path";
+import {createItem, insert, isSubPathOf, Item, remove, update} from "../item";
+import { Path } from "../item";
 import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';

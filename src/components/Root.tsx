@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Item } from "../item";
 import { ItemContainer } from "./ItemContainer";
-import { Path } from "../path";
+import { Path } from "../item";
 import { List } from "immutable";
 
 
