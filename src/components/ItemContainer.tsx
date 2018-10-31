@@ -5,7 +5,7 @@ import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
 import { Bullet } from "./Bullet";
-import { scrollInto } from "../utils";
+import { isEditorStateChange, scrollInto } from "../utils";
 
 
 interface Props {
@@ -232,7 +232,7 @@ export class ItemContainer extends React.Component<Props, State> {
       this.props.item.expand !== nextProps.item.expand
       || !this.props.item.children.equals(nextProps.item.children)
       || this.state.isFocus !== nextState.isFocus
-      || this.props.item.editor !== nextProps.item.editor
+      || isEditorStateChange(this.props.item.editor, nextProps.item.editor)
       || this.props.updateTree !== nextProps.updateTree
     );
   }

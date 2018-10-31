@@ -1,3 +1,5 @@
+import { EditorState } from "draft-js";
+
 export const empty = () => {};
 
 export const scrollInto = (element: Element) => {
@@ -22,3 +24,18 @@ function isElementInViewport(element: Element) {
     rect.right <= (window.innerWidth || rootElement.clientWidth)
   );
 }
+
+
+export const isEditorStateChange = (current: EditorState, next: EditorState): boolean => {
+  // @ts-ignore
+  if (current.getImmutable) {
+    // NOTICE:
+    // This is a ugly workaround.
+    // `getImmutable` not in documents nor in type definition.
+    // @ts-ignore
+    return !current.getImmutable().equals(next.getImmutable());
+  }
+  else {
+    return current !== next;
+  }
+};
