@@ -95,6 +95,23 @@ export const append = (tree: Item, items: Array<Item>, parent: Path): Item => {
 };
 
 
+export const mapLocation = (tree: Item, path: Path, mapper: (item: Item) => Item): Item => {
+  const index = path.first(null);
+  if (index === null) {
+    return mapper(tree);
+  }
+  else {
+    const child = tree.children.get(index, undefined);
+    if (child === undefined) {
+      console.error('unexpected index');
+      return tree;
+    }
+    const children = tree.children.set(index, mapLocation(child, path.rest(), mapper));
+    return { ...tree, children }
+  }
+};
+
+
 export const insert = (tree: Item, items: Array<Item>, path: Path, remove: number = 0): Item => {
   const index = path.first(null);
   if (index === null) {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createItem, insert, Item, itemTail, Path, remove, update } from "../item";
+import { createItem, insert, Item, itemTail, mapLocation, Path, remove, update } from "../item";
 import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
@@ -52,17 +52,22 @@ export class ItemContainer extends React.Component<Props, State> {
   };
   private indent = () => {
     const { updateTree, path, item, edit, prev } = this.props;
-    let next = prev;
-    if (prev.size === path.size) {
-      next = prev.push(0);
-    }
-    else if (prev.size > path.size) {
-      next = prev.slice(0, path.size + 1).update(path.size, x => x + 1);
-    }
-    else {
+    if (prev.size < path.size)
       return;
-    }
-    updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
+    const sibling = prev.slice(0, path.size);
+    let newIndex = 0;
+    updateTree(
+      tree => mapLocation(
+        remove(tree, path),
+        sibling,
+        prevItem => {
+          newIndex = prevItem.children.size;
+          const children = prevItem.children.push(item);
+          return { ...prevItem, children, expand: true }
+        }
+      ),
+      () => edit(sibling.push(newIndex))
+    );
   };
   private unIndent = () => {
     const { updateTree, path, item, edit } = this.props;
