@@ -175,7 +175,8 @@ export class ItemContainer extends React.Component<Props, State> {
     const { item } = this.props;
     switch (command) {
       case 'backspace':
-        if (!item.editor.getCurrentContent().hasText() && item.children.isEmpty()) {
+        const isEmpty = !item.editor.getCurrentContent().hasText();
+        if (isEmpty && item.children.isEmpty()) {
           this.remove();
           return 'handled'
         }
