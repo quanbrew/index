@@ -18,10 +18,10 @@ export class Bullet extends React.PureComponent<Props, State> {
     const { onClick, hasChild, expand } = this.props;
     let symbol = '•';
     if (hasChild && expand) {
-      symbol = '+';
+      symbol = '-';
     }
     else if (hasChild && !expand) {
-      symbol = '-';
+      symbol = '+';
     }
     return <a className='bullet' onClick={ onClick }>{ symbol }</a>;
   }
