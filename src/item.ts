@@ -27,6 +27,18 @@ export const addChild = (parent: Item, child: Item, position?: number): Item => 
 };
 
 
+export const findItem = (item: Item, id: string): Item | null => {
+  if (item.id === id)
+    return item;
+  for (let i = 0; i < item.children.size; i++) {
+    const result = findItem(item.children.get(i) as Item, id);
+    if (result !== null)
+      return result;
+  }
+  return null;
+};
+
+
 export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): Item => {
   const rnd1 = Math.random();
   const rnd2 = String(Math.random() * 100);

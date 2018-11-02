@@ -6,6 +6,7 @@ import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
 import { Bullet } from "./Bullet";
 import { isEditorStateChange, scrollInto } from "../utils";
+import { Link } from "react-router-dom";
 
 
 interface Props {
@@ -247,12 +248,13 @@ export class ItemContainer extends React.Component<Props, State> {
   render() {
     const className = classNames('ItemContainer', { editing: this.state.isFocus });
     const { item } = this.props;
-
+    const path = `/${ item.id }`;
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     return (
       <div ref={ this.selfRef } className={ className }>
         <div>
           <Bullet onClick={ () => this.toggle() } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
+          <Link to={ path }>zoom</Link>
           <Editor editorState={ item.editor }
                   ref={ this.editorRef }
                   handleKeyCommand={ this.handleKeyCommand }
