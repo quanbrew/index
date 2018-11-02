@@ -25,7 +25,6 @@ interface State {
 }
 
 
-
 export class ItemContainer extends React.Component<Props, State> {
   editorRef: React.RefObject<Editor>;
   selfRef: React.RefObject<HTMLDivElement>;

@@ -5,6 +5,7 @@ import { Root } from "./Root";
 import { BrowserRouter as Router, Route, RouteComponentProps } from "react-router-dom";
 import { Switch } from "react-router";
 import { NotFound } from "./NotFound";
+import ScrollToTop from "./ScrollToTop";
 
 
 interface Props {
@@ -36,13 +37,15 @@ class App extends React.Component<Props, State> {
     const root = this.state.root;
     return (
       <Router>
-        <main className='App'>
-          <Switch>
-            <Route path="/" exact render={ () => <Root item={ root } update={ this.update }/> }/>
-            <Route path="/:id" render={ this.renderItemById }/>
-            <Route component={ NotFound }/>
-          </Switch>
-        </main>
+        <ScrollToTop>
+          <main className='App'>
+            <Switch>
+              <Route path="/" exact render={ () => <Root item={ root } update={ this.update }/> }/>
+              <Route path="/:id" render={ this.renderItemById }/>
+              <Route component={ NotFound }/>
+            </Switch>
+          </main>
+        </ScrollToTop>
       </Router>
     );
   }
