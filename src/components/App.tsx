@@ -6,13 +6,17 @@ import { BrowserRouter as Router, Route, RouteComponentProps } from "react-route
 import { Switch } from "react-router";
 import { NotFound } from "./NotFound";
 import ScrollToTop from "./ScrollToTop";
+import { Line } from "./Line";
+import { readFileSync } from "fs";
 
+const markdown = readFileSync(__dirname + '/../markdown-test.md', 'utf-8');
 
 interface Props {
 }
 
 interface State {
   root: Item;
+  source: string;
 }
 
 
@@ -22,7 +26,7 @@ class App extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     const root = randomTree();
-    this.state = { root };
+    this.state = { root, source: markdown };
   }
 
   renderItemById = ({ match }: RouteComponentProps<{ id: string }>) => {
@@ -39,6 +43,7 @@ class App extends React.Component<Props, State> {
       <Router>
         <ScrollToTop>
           <main className='App'>
+            <Line source={ this.state.source } onChange={ source => this.setState({ source }) }/>
             <Switch>
               <Route path="/" exact render={ () => <Root item={ root } update={ this.update }/> }/>
               <Route path="/:id" render={ this.renderItemById }/>
