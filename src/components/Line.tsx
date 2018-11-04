@@ -57,8 +57,9 @@ const sourcePosition = (source: string, element: HTMLElement): SourceRange => {
   const value = element.getAttribute('data-sourcepos');
   if (value === null) {
     const parent = element.parentElement;
-    if (parent === null)
+    if (parent === null) {
       throw Error('can\'t found "data-sourcepos"');
+    }
     return sourcePosition(source, parent);
   }
   // 1 base [start, end)
@@ -81,12 +82,22 @@ const markdownSourceOffset = (source: string, node: Node, offset: number): numbe
   const sibling = node.previousSibling;
   const parent = node.parentElement;
   const content = node.textContent;
-  if (sibling === null && parent !== null) {
-
+  const hasSourcePos = (n: any): n is HTMLElement =>
+    n instanceof HTMLElement && n.hasAttribute('data-sourcepos');
+  if (hasSourcePos(node)) {
+    const position = sourcePosition(source, node);
+    const { start, end } = position;
+    if (content === null) {
+      return end;
+    }
+    else {
+      return source.indexOf(content, start) + offset;
+    }
+  }
+  else if (sibling === null && parent !== null) {
     const position = sourcePosition(source, parent);
     const { start } = position;
     if (content === null) {
-      console.log('non-text node selected');
       return start;
     }
     else {
@@ -98,7 +109,6 @@ const markdownSourceOffset = (source: string, node: Node, offset: number): numbe
     const content = node.textContent;
     const end = position.end - 1;
     if (content === null) {
-      console.log('non-text node selected');
       return position.start;
     }
     else {
@@ -112,11 +122,13 @@ const markdownSourceOffset = (source: string, node: Node, offset: number): numbe
 export class Line extends React.Component<Props, State> {
   editorRef: React.RefObject<Editor>;
 
-  handleClick = () => {
+  handleClick = (e: React.MouseEvent) => {
     const selection = getSelection();
-    if (selection.isCollapsed && !this.state.isEditing && selection.anchorNode !== null) {
+    let node = selection.anchorNode;
+    const out = (n: any) => n instanceof HTMLElement && n.className === 'document';
+    if (selection.isCollapsed && !this.state.isEditing && node !== null && !out(node)) {
       const source = this.props.source;
-      const offset = markdownSourceOffset(source, selection.anchorNode, selection.anchorOffset);
+      const offset = markdownSourceOffset(source, node, selection.anchorOffset);
       const content = ContentState.createFromText(source);
       const position = offsetToLineNumber(source, offset);
       const editorSelection = SelectionState
@@ -158,7 +170,7 @@ export class Line extends React.Component<Props, State> {
     }
     else {
       return (
-        <div onClick={ this.handleClick }>
+        <div className="document" onClick={ this.handleClick }>
           <ReactMarkdown
             sourcePos={ true }
             source={ this.props.source }
