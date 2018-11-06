@@ -7,12 +7,14 @@ const ReactMarkdown = require('react-markdown');
 interface Props {
   source: string;
   onChange: (source: string) => void;
+  isEditing: boolean;
+  edit: (callback?: () => void) => void;
+  exit: (callback?: () => void) => void;
 }
 
 
 interface State {
   editor?: EditorState;
-  isEditing: boolean;
 }
 
 
@@ -123,42 +125,65 @@ export class Line extends React.Component<Props, State> {
   editorRef: React.RefObject<Editor>;
 
   handleClick = (e: React.MouseEvent) => {
-    const selection = getSelection();
-    let node = selection.anchorNode;
-    const out = (n: any) => n instanceof HTMLElement && n.className === 'document';
-    if (selection.isCollapsed && !this.state.isEditing && node !== null && !out(node)) {
-      const source = this.props.source;
-      const offset = markdownSourceOffset(source, node, selection.anchorOffset);
-      const content = ContentState.createFromText(source);
-      const position = offsetToLineNumber(source, offset);
-      const editorSelection = SelectionState
-        .createEmpty(content.getBlocksAsArray()[position.row].getKey())
-        .set('anchorOffset', position.column)
-        .set('focusOffset', position.column)
+    const { source, edit, isEditing } = this.props;
+    if (!isEditing) {
+      let content;
+      let prevEditor;
+      if (!this.state.editor) {
+        content = ContentState.createFromText(source);
+        prevEditor = EditorState.createWithContent(content);
+      }
+      else {
+        prevEditor = this.state.editor;
+        content = prevEditor.getCurrentContent();
+      }
+      const selection = SelectionState
+        .createEmpty(content.getFirstBlock().getKey())
+        .set('anchorOffset', 0)
+        .set('focusOffset', 0)
         .set('hasFocus', true) as SelectionState;
-      const editor = EditorState.acceptSelection(EditorState.createWithContent(content), editorSelection);
-      this.setState({ editor, isEditing: true })
+      const editor = EditorState.acceptSelection(prevEditor, selection);
+      this.setState({ editor }, edit);
+    }
+    // const selection = getSelection();
+    // let node = selection.anchorNode;
+    // const out = (n: any) => n instanceof HTMLElement && n.className === 'document';
+    // if (selection.isCollapsed && !this.props.isEditing && node !== null && !out(node)) {
+    //   const source = this.props.source;
+    //   const offset = markdownSourceOffset(source, node, selection.anchorOffset);
+    //   const content = ContentState.createFromText(source);
+    //   const position = offsetToLineNumber(source, offset);
+    //   const editorSelection = SelectionState
+    //     .createEmpty(content.getBlocksAsArray()[position.row].getKey())
+    //     .set('anchorOffset', position.column)
+    //     .set('focusOffset', position.column)
+    //     .set('hasFocus', true) as SelectionState;
+    //   const editor = EditorState.acceptSelection(EditorState.createWithContent(content), editorSelection);
+    //   this.setState({ editor });
+    //   this.props.edit()
+    // }
+  };
+
+  submit = () => {
+    const { editor } = this.state;
+    if (editor) {
+      this.props.onChange(editor.getCurrentContent().getPlainText())
     }
   };
 
   exit = () => {
-    const { editor } = this.state;
-    this.setState({ isEditing: false });
-    if (editor !== undefined) {
-      const source = editor.getCurrentContent().getPlainText();
-      this.props.onChange(source);
-    }
+    this.props.exit(this.submit);
   };
 
   constructor(props: Props) {
     super(props);
+    this.state = {};
     this.editorRef = React.createRef();
-    this.state = { isEditing: false }
   }
 
 
   render() {
-    if (this.state.isEditing && this.state.editor) {
+    if (this.props.isEditing && this.state.editor) {
       return (
         <Editor
           editorState={ this.state.editor }
@@ -174,6 +199,8 @@ export class Line extends React.Component<Props, State> {
           <ReactMarkdown
             sourcePos={ true }
             source={ this.props.source }
+            allowedTypes={ ['root', 'text', 'emphasis', 'strong', 'link', 'image', 'inlineCode'] }
+            unwrapDisallowed={ true }
           />
         </div>
       );

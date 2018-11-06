@@ -1,22 +1,19 @@
 import { List } from "immutable";
-import { ContentState, EditorState } from "draft-js";
 
 const uuid1 = require('uuid/v1');
 
 export interface Item {
   id: string;
   children: List<Item>;
-  editor: EditorState;
   expand: boolean;
+  source: string;
 }
 
 
-const content = (text: string) => EditorState.createWithContent(ContentState.createFromText(text));
-
-export const createItem = (text: string = ''): Item => ({
+export const createItem = (source: string = ''): Item => ({
   id: uuid1(),
   children: List(),
-  editor: content(text),
+  source,
   expand: true,
 });
 
@@ -41,7 +38,7 @@ export const findItem = (item: Item, id: string): Item | null => {
 
 export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): Item => {
   const rnd1 = Math.random();
-  const rnd2 = String(Math.random() * 100);
+  const source = String(Math.random() * 100);
   let children = List();
   if (rnd1 > threshold && level < 10) {
     for (let i = 0; i < Math.random() * 100; i++) {
@@ -51,7 +48,7 @@ export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): 
   return ({
     id: uuid1(),
     children: children,
-    editor: content(rnd2),
+    source,
     expand: true,
   })
 };

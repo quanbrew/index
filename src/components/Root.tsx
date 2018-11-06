@@ -11,6 +11,7 @@ interface Props {
 
 
 interface State {
+  editing?: Path;
 }
 
 
@@ -19,18 +20,7 @@ const rootPath = List();
 
 export class Root extends React.Component<Props, State> {
   root: React.RefObject<ItemContainer>;
-  edit = (target: Path) => {
-    let index = target.first(null);
-    let node = this.root.current;
-    while (index !== null && node) {
-      node = node.children[index];
-      target = target.rest();
-      index = target.first(null);
-    }
-    if (node) {
-      node.focus();
-    }
-  };
+  edit = (editing?: Path, callback?: () => void) => this.setState({ editing }, callback);
 
   updateRoot = (mapper: (tree: Item) => Item, callback?: () => void) => {
     const root = mapper(this.props.item);
@@ -40,6 +30,7 @@ export class Root extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.root = React.createRef();
+    this.state = { editing: rootPath }
   }
 
   public render() {
@@ -49,7 +40,7 @@ export class Root extends React.Component<Props, State> {
       <div className='items'>
         <ItemContainer
           ref={ this.root }
-          item={ item } edit={ this.edit }
+          item={ item } edit={ this.edit } editing={ this.state.editing }
           path={ rootPath } next={ rootPath } prev={ rootPath }
           updateTree={ this.updateRoot }
         />
