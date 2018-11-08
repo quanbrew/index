@@ -21,14 +21,15 @@ interface Props {
 }
 
 
-interface State {
-  editor?: EditorState;
-}
-
-
 interface Position {
   row: number,
   column: number,
+}
+
+
+interface State {
+  editor?: EditorState;
+  position?: Position;
 }
 
 
@@ -39,10 +40,12 @@ interface SourceRange {
 
 
 const lineNumberToOffset = (source: string, lineNumber: number): number => {
-  let position = -1;
-  while (lineNumber > 0) {
-    position = source.indexOf('\n', position + 1);
-    lineNumber -= 1;
+  let position = 0;
+  for (let i = 0; i < lineNumber; i++) {
+    const result = source.indexOf('\n', position);
+    if (result === -1)
+      return position;
+    position = result + 1;
   }
   return position;
 };
@@ -63,16 +66,13 @@ const offsetToLineNumber = (source: string, offset: number): Position => {
 };
 
 
+const hasSourcePos = (node: any): boolean =>
+  node instanceof HTMLElement && node.hasAttribute('data-sourcepos');
+
 const sourcePosition = (source: string, element: HTMLElement): SourceRange => {
   const value = element.getAttribute('data-sourcepos');
   if (value === null) {
-    const parent = element.parentElement;
-    if (parent === null) {
-      console.warn('can\'t found "data-sourcepos"');
-      debugger;
-      return { start: 0, end: 0 }
-    }
-    return sourcePosition(source, parent);
+    throw Error('there is no `data-sourcepos`')
   }
   // 1 base [start, end)
   const result = /(\d+):(\d+)-(\d+):(\d+)/.exec(value);
@@ -83,6 +83,7 @@ const sourcePosition = (source: string, element: HTMLElement): SourceRange => {
   const startColumn = parseInt(result[2]) - 1;
   const endRow = parseInt(result[3]) - 1;
   const endColumn = parseInt(result[4]) - 1;
+
   return {
     start: lineNumberToOffset(source, startRow) + startColumn,
     end: lineNumberToOffset(source, endRow) + endColumn,
@@ -92,49 +93,44 @@ const sourcePosition = (source: string, element: HTMLElement): SourceRange => {
 
 const markdownSourceOffset = (source: string, node: Node, offset: number): number => {
   const sibling = node.previousSibling;
-  const parent = node.parentElement;
   const content = node.textContent;
-  const hasSourcePos = (n: any): n is HTMLElement =>
-    n instanceof HTMLElement && n.hasAttribute('data-sourcepos');
-  if (hasSourcePos(node)) {
-    const position = sourcePosition(source, node);
-    const { start, end } = position;
-    if (content === null) {
-      return end;
-    }
-    else {
-      return source.indexOf(content, start) + offset;
-    }
-  }
-  else if (sibling === null && parent !== null) {
-    const position = sourcePosition(source, parent);
-    const { start } = position;
+
+  const searchSource = (start: number) => {
     if (content === null) {
       return start;
     }
     else {
       return source.indexOf(content, start) + offset;
     }
+  };
+  if (hasSourcePos(node)) {
+    const position = sourcePosition(source, node as HTMLElement);
+    return searchSource(position.start)
   }
-  else if (sibling instanceof HTMLElement) {
-    const position = sourcePosition(source, sibling);
-    const content = node.textContent;
-    const end = position.end - 1;
-    if (content === null) {
-      return position.start;
-    }
-    else {
-      return source.indexOf(content, end) + offset;
-    }
+  else if (hasSourcePos(sibling)) {
+    const position = sourcePosition(source, sibling as HTMLElement);
+    return searchSource(position.end);
   }
-  return 0;
+  else {
+    let parent = node.parentElement;
+    while (parent !== null) {
+      if (hasSourcePos(parent)) {
+        const position = sourcePosition(source, parent as HTMLElement);
+        return searchSource(position.start)
+      }
+      parent = parent.parentElement;
+    }
+    debugger;
+    return 0;
+  }
 };
 
 
 export class Line extends React.Component<Props, State> {
   editorRef: React.RefObject<Editor>;
+  documentRef: React.RefObject<HTMLDivElement>;
 
-  static createEditor(source: string, row: number, column: number): EditorState {
+  static createEditor(source: string, row: number = 0, column: number = 0): EditorState {
     const content = ContentState.createFromText(source);
     const selection = SelectionState
       .createEmpty(content.getBlocksAsArray()[row].getKey())
@@ -152,54 +148,23 @@ export class Line extends React.Component<Props, State> {
     e.stopPropagation();
 
     if (!isEditing) {
-
-      let content;
-      let prevEditor;
-      if (!this.state.editor) {
-        content = ContentState.createFromText(source);
-        prevEditor = EditorState.createWithContent(content);
-      }
-      else {
-        prevEditor = this.state.editor;
-        content = prevEditor.getCurrentContent();
-      }
       const selection = getSelection();
-      let selectionState;
-      const node = selection.anchorNode;
-      const outOfContent = (n: any) => n instanceof HTMLElement && n.className === 'document';
-      const position = offsetToLineNumber(source, markdownSourceOffset(source, node, selection.anchorOffset));
-      if (selection.isCollapsed && node !== null && !outOfContent(node)) {
-        selectionState = SelectionState
-          .createEmpty(content.getBlocksAsArray()[position.row].getKey())
-          .merge({
-            'hasFocus': true,
-            'anchorOffset': position.column,
-            'focusOffset': position.column,
-          })
+      if (!selection.isCollapsed && !selection.anchorNode) {
+        return;
       }
-      else {
-        selectionState = SelectionState
-          .createEmpty(content.getFirstBlock().getKey())
-          .merge({
-            'hasFocus': true,
-            'anchorOffset': 0,
-            'focusOffset': 0,
-          });
-      }
-      const editor = EditorState.acceptSelection(prevEditor, selectionState as SelectionState);
-      this.setState({ editor }, edit);
+
+      const offset = markdownSourceOffset(source, selection.anchorNode, selection.anchorOffset);
+      const position = offsetToLineNumber(source, offset);
+      this.setState({ position });
+      edit();
     }
   };
 
   submit = (callback?: () => void) => {
     const { editor } = this.state;
-    if (editor) {
-      this.props.onChange(editor.getCurrentContent().getPlainText(), callback);
-      this.forceUpdate();
-    }
-    else if (callback !== undefined) {
-      callback();
-    }
+    if (!editor)
+      throw Error('editor is undefined');
+    this.props.onChange(editor.getCurrentContent().getPlainText(), callback);
   };
 
   exit = () => {
@@ -237,14 +202,11 @@ export class Line extends React.Component<Props, State> {
     return editor !== undefined && editor.getCurrentContent().hasText()
   }
 
-  shouldComponentUpdate(nextProps: Props) {
-    return this.props.isEditing || nextProps.isEditing;
-  }
-
   static getDerivedStateFromProps(props: Props, state: State) {
-    if (props.isEditing && state.editor === undefined) {
-      const editor = Line.createEditor(props.source, 0, 0);
-      return { editor }
+    if (props.isEditing && (state.editor === undefined || state.position)) {
+      const { row, column } = state.position || { row: 0, column: 0 };
+      const editor = Line.createEditor(props.source, row, column);
+      return { editor, position: undefined }
     }
     return null;
   }
@@ -300,6 +262,11 @@ export class Line extends React.Component<Props, State> {
     return getDefaultKeyBinding(e);
   };
 
+  handleChange = (editor: EditorState) => {
+    if (editor.getSelection().getHasFocus())
+      this.setState({ editor })
+  };
+
   renderEditor() {
     let { editor } = this.state;
     if (!editor) {
@@ -310,7 +277,7 @@ export class Line extends React.Component<Props, State> {
         editorState={ editor }
         onBlur={ this.exit }
         ref={ this.editorRef }
-        onChange={ editor => this.setState({ editor }) }
+        onChange={ this.handleChange }
         onTab={ this.onTab }
         handleReturn={ this.handleReturn }
         onUpArrow={ this.onUpArrow }
@@ -327,7 +294,7 @@ export class Line extends React.Component<Props, State> {
     }
     else {
       return (
-        <div className="document" onClick={ this.handleClick }>
+        <div className="document" ref={ this.documentRef } onClick={ this.handleClick }>
           <ReactMarkdown
             sourcePos={ true }
             containerTagName="span"
