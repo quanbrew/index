@@ -3,7 +3,7 @@ import './Bullet.css';
 
 
 interface Props {
-  onClick: () => void;
+  onClick?: () => void;
   expand: boolean;
   hasChild: boolean;
 }

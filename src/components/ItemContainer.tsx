@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Item, itemTail, Path, update } from "../item";
+import { createItem, insert, isSubPathOf, Item, itemTail, mapLocation, Path, remove, update } from "../item";
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
@@ -29,44 +29,47 @@ export class ItemContainer extends React.Component<Props, State> {
     updateTree(tree => update(tree, item, path), callback)
   }
 
-  // private toggle = (setExpand?: boolean) => {
-  //   const { item, path, edit } = this.props;
-  //   const expand = setExpand === undefined ? !item.expand : setExpand;
-  //   this.update({ ...item, expand }, () => edit(path));
-  // };
-  //
-  // private indent = () => {
-  //   const { updateTree, path, item, edit, prev } = this.props;
-  //   if (prev.size < path.size)
-  //     return;
-  //   const sibling = prev.slice(0, path.size);
-  //   let newIndex = 0;
-  //   updateTree(
-  //     tree => mapLocation(
-  //       remove(tree, path),
-  //       sibling,
-  //       prevItem => {
-  //         newIndex = prevItem.children.size;
-  //         const children = prevItem.children.push(item);
-  //         return { ...prevItem, children, expand: true }
-  //       }
-  //     ),
-  //     () => edit(sibling.push(newIndex))
-  //   );
-  // };
-  // private unIndent = () => {
-  //   const { updateTree, path, item, edit } = this.props;
-  //   if (path.size < 2) return;
-  //   const parent = path.pop();
-  //   const next = parent.update(parent.size - 1, x => x + 1);
-  //   updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
-  // };
-  // private remove = () => {
-  //   const { updateTree, path, edit, prev } = this.props;
-  //   const index = path.last(null);
-  //   if (index === null) return;
-  //   updateTree(tree => remove(tree, path), () => edit(prev));
-  // };
+  private toggle = (setExpand?: boolean) => {
+    const { item, path, edit } = this.props;
+    const expand = setExpand === undefined ? !item.expand : setExpand;
+    this.update({ ...item, expand }, () => edit(path));
+  };
+
+  private indent = () => {
+    const { updateTree, path, item, edit, prev } = this.props;
+    if (prev.size < path.size)
+      return;
+    const sibling = prev.slice(0, path.size);
+    let newIndex = 0;
+    updateTree(
+      tree => mapLocation(
+        remove(tree, path),
+        sibling,
+        prevItem => {
+          newIndex = prevItem.children.size;
+          const children = prevItem.children.push(item);
+          return { ...prevItem, children, expand: true }
+        }
+      ),
+      () => edit(sibling.push(newIndex))
+    );
+  };
+
+  private unIndent = () => {
+    const { updateTree, path, item, edit } = this.props;
+    if (path.size < 2) return;
+    const parent = path.pop();
+    const next = parent.update(parent.size - 1, x => x + 1);
+    updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
+  };
+
+  private remove = (skipChildrenCheck?: boolean) => {
+    const { updateTree, path, edit, prev, item } = this.props;
+    const index = path.last(null);
+    if (index === null || (skipChildrenCheck !== true && !item.children.isEmpty())) return;
+    updateTree(tree => remove(tree, path), () => edit(prev));
+  };
+
   private displayChild = (currentItem: Item, index: number) => {
     const { path, item, prev, next, updateTree, edit, editing } = this.props;
 
@@ -90,110 +93,38 @@ export class ItemContainer extends React.Component<Props, State> {
       />
     );
   };
-  private onFocus = () => {
-    // const { item } = this.props;
-    // const selection = item.editor.getSelection().set('anchorOffset', 2).set('focusOffset', 2) as SelectionState;
-    // const editor = EditorState.forceSelection(item.editor, selection);
-    // this.update({ ...item, editor });
+
+
+  private onEnter = (hasContent: boolean) => {
+    // if content is empty and item is last item in siblings, indent it.
+    const { path, next, updateTree, edit } = this.props;
+    const isLastItem = next.size < path.size;
+    if (isLastItem && path.size > 1 && !hasContent) {
+      this.unIndent();
+    }
+    else {
+      const createPath = path.set(path.size - 1, path.last(-1) + 1);
+      updateTree(tree => insert(tree, [createItem()], createPath), () => edit(createPath));
+    }
   };
 
-  private onBlur = () => {
+
+  swap = (direction: 'Prev' | 'Next') => {
+    const { edit, next, prev, path, item, updateTree } = this.props;
+    let target: Path;
+    if (direction === 'Prev' && path.last(0) !== 0)
+      target = prev;
+    else if (direction === 'Next' && path.size === next.size)
+      target = next;
+    else
+      return;
+    updateTree(
+      tree => insert(remove(tree, path), [item], target),
+      () => edit(target)
+    );
   };
 
-  // private onEnter = (): DraftHandleValue => {
-  //   // if content is empty and item is last item in siblings, indent it.
-  //   const { item, path, next, updateTree, edit } = this.props;
-  //   const isLastItem = next.size < path.size;
-  //   const notEmpty = item.editor.getCurrentContent().hasText();
-  //   if (isLastItem && path.size > 1 && !notEmpty) {
-  //     this.unIndent();
-  //   }
-  //   else {
-  //     const createPath = path.set(path.size - 1, path.last(-1) + 1);
-  //     updateTree(tree => insert(tree, [createItem()], createPath), () => edit(createPath));
-  //   }
-  //   return 'handled';
-  // };
-  // private onTab = (e: React.KeyboardEvent) => {
-  //   e.preventDefault();
-  //   if (e.shiftKey) {
-  //     return this.unIndent()
-  //   }
-  //   else {
-  //     return this.indent()
-  //   }
-  // };
-  //
-  // private handleChange = (editor: EditorState) => {
-  //   const { item } = this.props;
-  //   this.update({ ...item, editor });
-  // };
-  // private onUp = (e: React.KeyboardEvent) => {
-  //   e.preventDefault();
-  //   const { edit, prev, path, item, updateTree } = this.props;
-  //   // swap with previous item.
-  //   if (e.metaKey) {
-  //     if (path.last(0) === 0)
-  //       return;
-  //     updateTree(tree => insert(remove(tree, path), [item], prev), () => edit(prev))
-  //   }
-  //   this.navigatePrev();
-  // };
-  // private onDown = (e: React.KeyboardEvent) => {
-  //   e.preventDefault();
-  //   const { edit, next, item, path, updateTree } = this.props;
-  //   // swap with previous item.
-  //   if (e.metaKey) {
-  //     // last item
-  //     if (path.size > next.size)
-  //       return;
-  //     updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
-  //   }
-  //   // navigate to next item.
-  //   else {
-  //     this.navigateNext();
-  //   }
-  // };
-  // private handleKeyCommand = (command: string): DraftHandleValue => {
-  //   const { item } = this.props;
-  //   switch (command) {
-  //     case 'backspace':
-  //       const isEmpty = !item.editor.getCurrentContent().hasText();
-  //       if (isEmpty && item.children.isEmpty()) {
-  //         this.remove();
-  //         return 'handled'
-  //       }
-  //       break;
-  //     case 'toggle-list':
-  //       this.toggle();
-  //       return 'handled';
-  //     case 'navigate-next':
-  //       this.navigateNext();
-  //       return "handled";
-  //     case 'navigate-prev':
-  //       this.navigatePrev();
-  //       return "handled";
-  //     case 'list-expand':
-  //       this.toggle(true);
-  //       return "handled";
-  //     case 'list-fold':
-  //       this.toggle(false);
-  //       return "handled";
-  //   }
-  //   return "not-handled";
-  // };
-  // private keyBindingFn = (e: React.KeyboardEvent): string | null => {
-  //   console.log(e.key, e.keyCode);
-  //   const DOT = 190;
-  //   switch (e.keyCode) {
-  //     case DOT:
-  //       if (e.metaKey) return 'toggle-list';
-  //       break;
-  //   }
-  //   return getDefaultKeyBinding(e);
-  // };
-
-  private navigateNext() {
+  navigateNext = () => {
     const { edit, next, item, path } = this.props;
     if (item.children.size !== 0 && item.expand)
       edit(path.push(0)); // enter next level
@@ -201,27 +132,27 @@ export class ItemContainer extends React.Component<Props, State> {
     else {
       edit(next)
     }
-  }
+  };
 
-  private navigatePrev() {
+  navigatePrev = () => {
     const { edit, prev } = this.props;
     edit(prev);
-  }
+  };
 
   constructor(props: Props) {
     super(props);
   }
 
-  // shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
-  //   return (
-  //     this.props.item.expand !== nextProps.item.expand
-  //     || !this.props.item.children.equals(nextProps.item.children)
-  //     || this.props.item.source !== this.props.item.source
-  //     || this.props.updateTree !== nextProps.updateTree
-  //     || this.props.editing !== nextProps.editing
-  //     || isSubPathOf(this.props.path, this.props.editing)
-  //   );
-  // }
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+    const { editing, path, item } = this.props;
+    return (
+      item.expand !== nextProps.item.expand
+      || item.children !== nextProps.item.children
+      || isSubPathOf(nextProps.path, nextProps.editing)
+      || isSubPathOf(path, editing)
+      || item.source !== nextProps.item.source
+    );
+  }
 
 
   render() {
@@ -233,15 +164,22 @@ export class ItemContainer extends React.Component<Props, State> {
     return (
       <div className={ className }>
         <div>
-          <Bullet onClick={ () => {
-          } } expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
+          <Bullet expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
           <Link to={ zoomPath }>zoom</Link>
           <Line
             source={ item.source }
-            onChange={ source => this.update({ ...item, source }) }
+            onChange={ (source, callback) => this.update({ ...item, source }, callback) }
             isEditing={ isEditing }
             edit={ callback => edit(path, callback) }
             exit={ callback => edit(undefined, callback) }
+            navigateNext={ this.navigateNext }
+            navigatePrev={ this.navigatePrev }
+            indent={ this.indent }
+            unIndent={ this.unIndent }
+            remove={ this.remove }
+            toggle={ this.toggle }
+            onEnter={ this.onEnter }
+            swap={ this.swap }
           />
         </div>
         { children }

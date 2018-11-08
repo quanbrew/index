@@ -30,7 +30,7 @@ export class Root extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.root = React.createRef();
-    this.state = { editing: rootPath }
+    this.state = { editing: undefined }
   }
 
   public render() {

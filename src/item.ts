@@ -55,7 +55,9 @@ export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): 
 
 
 export type Path = List<number>;
-export const isSubPathOf = (subPath: Path, path: Path): boolean => {
+export const isSubPathOf = (subPath?: Path, path?: Path): boolean => {
+  if (subPath === undefined || path === undefined)
+    return false;
   if (path.size < subPath.size) {
     return false;
   }

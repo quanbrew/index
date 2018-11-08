@@ -1,15 +1,23 @@
 import * as React from 'react';
-import { ContentState, Editor, EditorState, SelectionState } from 'draft-js';
+import { ContentState, DraftHandleValue, Editor, EditorState, getDefaultKeyBinding, SelectionState } from 'draft-js';
 
 const ReactMarkdown = require('react-markdown');
 
 
 interface Props {
   source: string;
-  onChange: (source: string) => void;
+  onChange: (source: string, callback?: () => void) => void;
   isEditing: boolean;
   edit: (callback?: () => void) => void;
   exit: (callback?: () => void) => void;
+  navigateNext: () => void;
+  navigatePrev: () => void;
+  indent: () => void;
+  unIndent: () => void;
+  remove: () => void;
+  toggle: (setExpand?: boolean) => void;
+  onEnter: (hasContent: boolean) => void;
+  swap: (direction: 'Prev' | 'Next') => void;
 }
 
 
@@ -60,7 +68,9 @@ const sourcePosition = (source: string, element: HTMLElement): SourceRange => {
   if (value === null) {
     const parent = element.parentElement;
     if (parent === null) {
-      throw Error('can\'t found "data-sourcepos"');
+      console.warn('can\'t found "data-sourcepos"');
+      debugger;
+      return { start: 0, end: 0 }
     }
     return sourcePosition(source, parent);
   }
@@ -124,9 +134,25 @@ const markdownSourceOffset = (source: string, node: Node, offset: number): numbe
 export class Line extends React.Component<Props, State> {
   editorRef: React.RefObject<Editor>;
 
+  static createEditor(source: string, row: number, column: number): EditorState {
+    const content = ContentState.createFromText(source);
+    const selection = SelectionState
+      .createEmpty(content.getBlocksAsArray()[row].getKey())
+      .merge({
+        'hasFocus': true,
+        'anchorOffset': column,
+        'focusOffset': column,
+      });
+    const editor = EditorState.createWithContent(content);
+    return EditorState.acceptSelection(editor, selection as SelectionState)
+  }
+
   handleClick = (e: React.MouseEvent) => {
     const { source, edit, isEditing } = this.props;
+    e.stopPropagation();
+
     if (!isEditing) {
+
       let content;
       let prevEditor;
       if (!this.state.editor) {
@@ -137,37 +163,41 @@ export class Line extends React.Component<Props, State> {
         prevEditor = this.state.editor;
         content = prevEditor.getCurrentContent();
       }
-      const selection = SelectionState
-        .createEmpty(content.getFirstBlock().getKey())
-        .set('anchorOffset', 0)
-        .set('focusOffset', 0)
-        .set('hasFocus', true) as SelectionState;
-      const editor = EditorState.acceptSelection(prevEditor, selection);
+      const selection = getSelection();
+      let selectionState;
+      const node = selection.anchorNode;
+      const outOfContent = (n: any) => n instanceof HTMLElement && n.className === 'document';
+      const position = offsetToLineNumber(source, markdownSourceOffset(source, node, selection.anchorOffset));
+      if (selection.isCollapsed && node !== null && !outOfContent(node)) {
+        selectionState = SelectionState
+          .createEmpty(content.getBlocksAsArray()[position.row].getKey())
+          .merge({
+            'hasFocus': true,
+            'anchorOffset': position.column,
+            'focusOffset': position.column,
+          })
+      }
+      else {
+        selectionState = SelectionState
+          .createEmpty(content.getFirstBlock().getKey())
+          .merge({
+            'hasFocus': true,
+            'anchorOffset': 0,
+            'focusOffset': 0,
+          });
+      }
+      const editor = EditorState.acceptSelection(prevEditor, selectionState as SelectionState);
       this.setState({ editor }, edit);
     }
-    // const selection = getSelection();
-    // let node = selection.anchorNode;
-    // const out = (n: any) => n instanceof HTMLElement && n.className === 'document';
-    // if (selection.isCollapsed && !this.props.isEditing && node !== null && !out(node)) {
-    //   const source = this.props.source;
-    //   const offset = markdownSourceOffset(source, node, selection.anchorOffset);
-    //   const content = ContentState.createFromText(source);
-    //   const position = offsetToLineNumber(source, offset);
-    //   const editorSelection = SelectionState
-    //     .createEmpty(content.getBlocksAsArray()[position.row].getKey())
-    //     .set('anchorOffset', position.column)
-    //     .set('focusOffset', position.column)
-    //     .set('hasFocus', true) as SelectionState;
-    //   const editor = EditorState.acceptSelection(EditorState.createWithContent(content), editorSelection);
-    //   this.setState({ editor });
-    //   this.props.edit()
-    // }
   };
 
-  submit = () => {
+  submit = (callback?: () => void) => {
     const { editor } = this.state;
     if (editor) {
-      this.props.onChange(editor.getCurrentContent().getPlainText())
+      this.props.onChange(editor.getCurrentContent().getPlainText(), callback)
+    }
+    else if (callback !== undefined) {
+      callback();
     }
   };
 
@@ -181,26 +211,124 @@ export class Line extends React.Component<Props, State> {
     this.editorRef = React.createRef();
   }
 
+  onUpArrow = (e: React.KeyboardEvent) => {
+    e.preventDefault();
+    if (e.metaKey) {
+      this.props.swap('Prev');
+    }
+    else {
+      this.submit(this.props.navigatePrev);
+    }
+  };
+
+  onDownArrow = (e: React.KeyboardEvent) => {
+    e.preventDefault();
+    if (e.metaKey) {
+      this.props.swap('Next');
+    }
+    else {
+      this.submit(this.props.navigateNext)
+    }
+  };
+
+  hasContent(): boolean {
+    const { editor } = this.state;
+    return editor !== undefined && editor.getCurrentContent().hasText()
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State) {
+    if (props.isEditing && state.editor === undefined) {
+      const editor = Line.createEditor(props.source, 0, 0);
+      return { editor }
+    }
+    return null;
+  }
+
+  private handleKeyCommand = (command: string): DraftHandleValue => {
+    const { toggle, navigateNext, navigatePrev, remove } = this.props;
+    switch (command) {
+      case 'backspace':
+        if (!this.hasContent()) {
+          remove();
+          return 'handled'
+        }
+        break;
+      case 'list-toggle':
+        toggle();
+        return 'handled';
+      case 'navigate-next':
+        navigateNext();
+        return "handled";
+      case 'navigate-prev':
+        navigatePrev();
+        return "handled";
+      case 'list-expand':
+        toggle(true);
+        return "handled";
+      case 'list-fold':
+        toggle(false);
+        return "handled";
+    }
+    return "not-handled";
+  };
+  private onTab = (e: React.KeyboardEvent) => {
+    e.preventDefault();
+    if (e.shiftKey) {
+      return this.props.unIndent()
+    }
+    else {
+      return this.props.indent()
+    }
+  };
+  private handleReturn = (): DraftHandleValue => {
+    this.submit(() => this.props.onEnter(this.hasContent()));
+    return 'handled';
+  };
+  private keyBindingFn = (e: React.KeyboardEvent): string | null => {
+    // console.log(e.key, e.keyCode);
+    const DOT = 190;
+    switch (e.keyCode) {
+      case DOT:
+        if (e.metaKey) return 'list-toggle';
+        break;
+    }
+    return getDefaultKeyBinding(e);
+  };
+
+  renderEditor() {
+    let { editor } = this.state;
+    if (!editor) {
+      throw Error('editor is undefined');
+    }
+    return (
+      <Editor
+        editorState={ editor }
+        onBlur={ this.exit }
+        ref={ this.editorRef }
+        onChange={ editor => this.setState({ editor }) }
+        onTab={ this.onTab }
+        handleReturn={ this.handleReturn }
+        onUpArrow={ this.onUpArrow }
+        onDownArrow={ this.onDownArrow }
+        keyBindingFn={ this.keyBindingFn }
+        handleKeyCommand={ this.handleKeyCommand }
+      />
+    );
+  }
 
   render() {
-    if (this.props.isEditing && this.state.editor) {
-      return (
-        <Editor
-          editorState={ this.state.editor }
-          onBlur={ this.exit }
-          ref={ this.editorRef }
-          onChange={ editor => this.setState({ editor }) }
-        />
-      );
+    if (this.props.isEditing) {
+      return this.renderEditor();
     }
     else {
       return (
         <div className="document" onClick={ this.handleClick }>
           <ReactMarkdown
             sourcePos={ true }
+            containerTagName="span"
             source={ this.props.source }
-            allowedTypes={ ['root', 'text', 'emphasis', 'strong', 'link', 'image', 'inlineCode'] }
-            unwrapDisallowed={ true }
+            renderers={ { paragraph: 'span' } }
+            allowedTypes={ ['paragraph', 'root', 'text', 'emphasis', 'strong', 'link', 'image', 'inlineCode'] }
           />
         </div>
       );
