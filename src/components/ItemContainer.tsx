@@ -4,8 +4,8 @@ import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import classNames from 'classnames';
 import { Bullet } from "./Bullet";
-import { Link } from "react-router-dom";
 import { Line } from "./Line";
+import { Zoom } from "./Zoom";
 
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
 
 
 interface State {
+  loadChildren: boolean;
 }
 
 
@@ -141,6 +142,14 @@ export class ItemContainer extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
+    this.state = { loadChildren: true };
+    if (!props.item.children.isEmpty() && props.item.expand) {
+      this.state = { loadChildren: false };
+      setTimeout(() => {
+        this.setState({ loadChildren: true });
+        this.forceUpdate();
+      }, 0);
+    }
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
@@ -154,18 +163,16 @@ export class ItemContainer extends React.Component<Props, State> {
     );
   }
 
-
   render() {
     const { item, path, editing, edit } = this.props;
     const isEditing = path.equals(editing);
     const className = classNames('ItemContainer', { editing: isEditing });
-    const zoomPath = `/${ item.id }`;
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     return (
       <div className={ className }>
         <div>
           <Bullet expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
-          <Link to={ zoomPath }>zoom</Link>
+          <Zoom id={ item.id }/>
           <Line
             source={ item.source }
             onChange={ (source, callback) => this.update({ ...item, source }, callback) }
@@ -182,7 +189,7 @@ export class ItemContainer extends React.Component<Props, State> {
             swap={ this.swap }
           />
         </div>
-        { children }
+        { this.state.loadChildren ? children : <p>loading...</p> }
       </div>
     );
   }

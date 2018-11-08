@@ -33,17 +33,28 @@ class App extends React.Component<Props, State> {
     if (item === null)
       return <NotFound/>;
     else
-      return <Root item={ item } update={ this.update }/>;
+      return this.renderItem(item);
+  };
+
+  renderItem = (item: Item) => {
+    return (
+      <Root
+        key={ item.id }
+        item={ item }
+        update={ this.update }
+      />
+    )
   };
 
   public render() {
-    const root = this.state.root;
+    const { root } = this.state;
+
     return (
       <Router>
         <ScrollToTop>
           <main className='App'>
             <Switch>
-              <Route path="/" exact render={ () => <Root item={ root } update={ this.update }/> }/>
+              <Route path="/" exact render={ () => this.renderItem(root) }/>
               <Route path="/:id" render={ this.renderItemById }/>
               <Route component={ NotFound }/>
             </Switch>

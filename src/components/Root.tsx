@@ -27,6 +27,9 @@ export class Root extends React.Component<Props, State> {
     this.props.update(root, callback);
   };
 
+  componentDidMount() {
+  }
+
   constructor(props: Props) {
     super(props);
     this.root = React.createRef();

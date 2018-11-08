@@ -194,7 +194,8 @@ export class Line extends React.Component<Props, State> {
   submit = (callback?: () => void) => {
     const { editor } = this.state;
     if (editor) {
-      this.props.onChange(editor.getCurrentContent().getPlainText(), callback)
+      this.props.onChange(editor.getCurrentContent().getPlainText(), callback);
+      this.forceUpdate();
     }
     else if (callback !== undefined) {
       callback();
@@ -237,7 +238,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   shouldComponentUpdate(nextProps: Props) {
-    return this.props.isEditing || nextProps.isEditing || this.props.source !== nextProps.source;
+    return this.props.isEditing || nextProps.isEditing;
   }
 
   static getDerivedStateFromProps(props: Props, state: State) {
