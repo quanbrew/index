@@ -236,6 +236,10 @@ export class Line extends React.Component<Props, State> {
     return editor !== undefined && editor.getCurrentContent().hasText()
   }
 
+  shouldComponentUpdate(nextProps: Props) {
+    return this.props.isEditing || nextProps.isEditing || this.props.source !== nextProps.source;
+  }
+
   static getDerivedStateFromProps(props: Props, state: State) {
     if (props.isEditing && state.editor === undefined) {
       const editor = Line.createEditor(props.source, 0, 0);
