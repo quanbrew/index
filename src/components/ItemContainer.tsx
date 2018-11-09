@@ -2,10 +2,8 @@ import * as React from 'react';
 import { createItem, insert, isSubPathOf, Item, itemTail, mapLocation, Path, remove, update } from "../item";
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
-import classNames from 'classnames';
 import { Bullet } from "./Bullet";
 import { Line } from "./Line";
-import { Zoom } from "./Zoom";
 
 
 interface Props {
@@ -166,13 +164,12 @@ export class ItemContainer extends React.Component<Props, State> {
   render() {
     const { item, path, editing, edit } = this.props;
     const isEditing = path.equals(editing);
-    const className = classNames('ItemContainer', { editing: isEditing });
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     return (
-      <div className={ className }>
-        <div>
+      <div className='ItemContainer'>
+        <div className="item-content">
           <Bullet expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
-          <Zoom id={ item.id }/>
+          { /*<Zoom id={ item.id }/>*/ }
           <Line
             source={ item.source }
             onChange={ (source, callback) => this.update({ ...item, source }, callback) }

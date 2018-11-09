@@ -20,7 +20,10 @@ const rootPath = List();
 
 export class Root extends React.Component<Props, State> {
   root: React.RefObject<ItemContainer>;
-  edit = (editing?: Path, callback?: () => void) => this.setState({ editing }, callback);
+  edit = (editing?: Path, callback?: () => void) => {
+    if (editing !== this.state.editing)
+      this.setState({ editing }, callback)
+  };
 
   updateRoot = (mapper: (tree: Item) => Item, callback?: () => void) => {
     const root = mapper(this.props.item);

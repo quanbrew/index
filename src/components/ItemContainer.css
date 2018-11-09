@@ -8,7 +8,6 @@
   background-color: aqua;
 }
 
-.item-content {
-  padding: 0.25em;
-  cursor: text;
+.document {
+  min-height: 0.8em;
 }
