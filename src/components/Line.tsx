@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { ContentState, DraftHandleValue, Editor, EditorState, getDefaultKeyBinding, SelectionState } from 'draft-js';
+import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding, SelectionState } from 'draft-js';
 import classNames from 'classnames';
 
 const ReactMarkdown = require('react-markdown');
 
 
 interface Props {
-  source: string;
-  onChange: (source: string, callback?: () => void) => void;
+  editor: EditorState;
+  onChange: (editor: EditorState, callback?: () => void) => void;
   isEditing: boolean;
   edit: (callback?: () => void) => void;
   exit: (callback?: () => void) => void;
@@ -29,7 +29,6 @@ interface Position {
 
 
 interface State {
-  editor?: EditorState;
   position?: Position;
 }
 
@@ -126,8 +125,8 @@ export class Line extends React.Component<Props, State> {
     this.editorRef = React.createRef();
   }
 
-  static createEditor(source: string, row: number = 0, column: number = 0): EditorState {
-    const content = ContentState.createFromText(source);
+  static editorApplySelection(editor: EditorState, row: number = 0, column: number = 0): EditorState {
+    const content = editor.getCurrentContent();
     const selection = SelectionState
       .createEmpty(content.getBlocksAsArray()[row].getKey())
       .merge({
@@ -135,15 +134,15 @@ export class Line extends React.Component<Props, State> {
         'anchorOffset': column,
         'focusOffset': column,
       });
-    const editor = EditorState.createWithContent(content);
     return EditorState.acceptSelection(editor, selection as SelectionState)
   }
 
   handleClick = (e: React.MouseEvent) => {
-    const { source, edit, isEditing } = this.props;
+    const { editor, edit, isEditing } = this.props;
     e.stopPropagation();
 
     if (!isEditing) {
+      const source = editor.getCurrentContent().getPlainText();
       const selection = getSelection();
       if (!selection.isCollapsed || !selection.anchorNode) {
         return;
@@ -155,39 +154,22 @@ export class Line extends React.Component<Props, State> {
     }
   };
 
-  submit = (callback?: () => void) => {
-    const { editor } = this.state;
-    if (!editor)
-      throw Error('editor is undefined');
-    this.props.onChange(editor.getCurrentContent().getPlainText(), callback);
-  };
-
-
 
   hasContent(): boolean {
-    const { editor } = this.state;
-    return editor !== undefined && editor.getCurrentContent().hasText()
+    return this.props.editor.getCurrentContent().hasText()
   }
 
-  static getDerivedStateFromProps(props: Props, state: State) {
-    if (props.isEditing && (state.editor === undefined || state.position)) {
-      const { row, column } = state.position || { row: 0, column: 0 };
-      const editor = Line.createEditor(props.source, row, column);
-      return { editor, position: undefined }
-    }
-    return null;
-  }
 
   handleChange = (editor: EditorState) => {
     const selection = editor.getSelection();
     if (!selection.getHasFocus()) {
       editor = EditorState.acceptSelection(editor, selection.set('hasFocus', true) as SelectionState);
     }
-    this.setState({ editor })
+    this.props.onChange(editor)
   };
   onBlur = () => {
     if (document.hasFocus())
-      this.props.exit(this.submit);
+      this.props.exit();
   };
   private onTab = (e: React.KeyboardEvent) => {
     e.preventDefault();
@@ -204,7 +186,7 @@ export class Line extends React.Component<Props, State> {
       this.props.swap('Prev');
     }
     else {
-      this.submit(this.props.navigatePrev);
+      this.props.navigatePrev();
     }
   };
   private onDownArrow = (e: React.KeyboardEvent) => {
@@ -213,11 +195,11 @@ export class Line extends React.Component<Props, State> {
       this.props.swap('Next');
     }
     else {
-      this.submit(this.props.navigateNext)
+      this.props.navigateNext()
     }
   };
   private handleReturn = (): DraftHandleValue => {
-    this.submit(() => this.props.onEnter(this.hasContent()));
+    this.props.onEnter(this.hasContent());
     return 'handled';
   };
   private keyBindingFn = (e: React.KeyboardEvent): string | null => {
@@ -260,10 +242,7 @@ export class Line extends React.Component<Props, State> {
 
 
   renderEditor() {
-    let { editor } = this.state;
-    if (!editor) {
-      throw Error('editor is undefined');
-    }
+    let { editor } = this.props;
     return (
       <Editor
         editorState={ editor }
@@ -298,7 +277,7 @@ export class Line extends React.Component<Props, State> {
           rawSourcePos
           containerTagName="span"
           unwrapDisallowed
-          source={ this.props.source }
+          source={ this.props.editor.getCurrentContent().getPlainText() }
           renderers={ { text: Text } }
           allowedTypes={ allowedTypes }
         />

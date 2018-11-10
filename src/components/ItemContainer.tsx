@@ -157,7 +157,7 @@ export class ItemContainer extends React.Component<Props, State> {
       || item.children !== nextProps.item.children
       || isSubPathOf(nextProps.path, nextProps.editing)
       || isSubPathOf(path, editing)
-      || item.source !== nextProps.item.source
+      || item.editor !== nextProps.item.editor
     );
   }
 
@@ -171,8 +171,8 @@ export class ItemContainer extends React.Component<Props, State> {
           <Bullet expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
           { /*<Zoom id={ item.id }/>*/ }
           <Line
-            source={ item.source }
-            onChange={ (source, callback) => this.update({ ...item, source }, callback) }
+            editor={ item.editor }
+            onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
             isEditing={ isEditing }
             edit={ callback => edit(path, callback) }
             exit={ callback => edit(undefined, callback) }
