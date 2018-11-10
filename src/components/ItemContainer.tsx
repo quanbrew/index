@@ -4,6 +4,7 @@ import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import { Bullet } from "./Bullet";
 import { Line } from "./Line";
+import { EditState } from "./Root";
 
 
 interface Props {
@@ -11,8 +12,8 @@ interface Props {
   path: Path;
   next: Path;
   prev: Path;
-  editing?: Path;
-  edit: (path?: Path, callback?: () => void) => void;
+  editing?: EditState;
+  edit: (state?: EditState, callback?: () => void) => void;
   updateTree: (mapper: (prev: Item) => Item, callback?: () => void) => void;
 }
 
@@ -31,7 +32,7 @@ export class ItemContainer extends React.Component<Props, State> {
   private toggle = (setExpand?: boolean) => {
     const { item, path, edit } = this.props;
     const expand = setExpand === undefined ? !item.expand : setExpand;
-    this.update({ ...item, expand }, () => edit(path));
+    this.update({ ...item, expand }, () => edit({ path }));
   };
 
   private indent = () => {
@@ -50,7 +51,7 @@ export class ItemContainer extends React.Component<Props, State> {
           return { ...prevItem, children, expand: true }
         }
       ),
-      () => edit(sibling.push(newIndex))
+      () => edit({ path: sibling.push(newIndex) })
     );
   };
 
@@ -59,14 +60,17 @@ export class ItemContainer extends React.Component<Props, State> {
     if (path.size < 2) return;
     const parent = path.pop();
     const next = parent.update(parent.size - 1, x => x + 1);
-    updateTree(tree => insert(remove(tree, path), [item], next), () => edit(next));
+    updateTree(
+      tree => insert(remove(tree, path), [item], next),
+      () => edit({ path: next })
+    );
   };
 
   private remove = (skipChildrenCheck?: boolean) => {
     const { updateTree, path, edit, prev, item } = this.props;
     const index = path.last(null);
     if (index === null || (skipChildrenCheck !== true && !item.children.isEmpty())) return;
-    updateTree(tree => remove(tree, path), () => edit(prev));
+    updateTree(tree => remove(tree, path), () => edit({ path: prev }));
   };
 
   private displayChild = (currentItem: Item, index: number) => {
@@ -103,7 +107,10 @@ export class ItemContainer extends React.Component<Props, State> {
     }
     else {
       const createPath = path.set(path.size - 1, path.last(-1) + 1);
-      updateTree(tree => insert(tree, [createItem()], createPath), () => edit(createPath));
+      updateTree(
+        tree => insert(tree, [createItem()], createPath),
+        () => edit({ path: createPath })
+      );
     }
   };
 
@@ -119,23 +126,23 @@ export class ItemContainer extends React.Component<Props, State> {
       return;
     updateTree(
       tree => insert(remove(tree, path), [item], target),
-      () => edit(target)
+      () => edit({ path: target })
     );
   };
 
   navigateNext = () => {
     const { edit, next, item, path } = this.props;
     if (item.children.size !== 0 && item.expand)
-      edit(path.push(0)); // enter next level
+      edit({ path: path.push(0) }); // enter next level
     else if (!path.isEmpty() && next.isEmpty()) return;
     else {
-      edit(next)
+      edit({ path: next })
     }
   };
 
   navigatePrev = () => {
     const { edit, prev } = this.props;
-    edit(prev);
+    edit({ path: prev });
   };
 
   constructor(props: Props) {
@@ -155,15 +162,15 @@ export class ItemContainer extends React.Component<Props, State> {
     return (
       item.expand !== nextProps.item.expand
       || item.children !== nextProps.item.children
-      || isSubPathOf(nextProps.path, nextProps.editing)
-      || isSubPathOf(path, editing)
+      || nextProps.editing !== undefined && isSubPathOf(nextProps.path, nextProps.editing.path)
+      || editing !== undefined && isSubPathOf(path, editing.path)
       || item.editor !== nextProps.item.editor
     );
   }
 
   render() {
     const { item, path, editing, edit } = this.props;
-    const isEditing = path.equals(editing);
+    const isEditing = editing !== undefined && path.equals(editing.path);
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     return (
       <div className='ItemContainer'>
@@ -174,7 +181,7 @@ export class ItemContainer extends React.Component<Props, State> {
             editor={ item.editor }
             onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
             isEditing={ isEditing }
-            edit={ callback => edit(path, callback) }
+            edit={ (position, callback) => edit({ path, position }, callback) }
             exit={ callback => edit(undefined, callback) }
             navigateNext={ this.navigateNext }
             navigatePrev={ this.navigatePrev }

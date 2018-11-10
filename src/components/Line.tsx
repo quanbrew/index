@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding, SelectionState } from 'draft-js';
+import { Position } from "../utils";
 import classNames from 'classnames';
 
 const ReactMarkdown = require('react-markdown');
@@ -9,7 +10,7 @@ interface Props {
   editor: EditorState;
   onChange: (editor: EditorState, callback?: () => void) => void;
   isEditing: boolean;
-  edit: (callback?: () => void) => void;
+  edit: (position?: Position, callback?: () => void) => void;
   exit: (callback?: () => void) => void;
   navigateNext: () => void;
   navigatePrev: () => void;
@@ -19,12 +20,6 @@ interface Props {
   toggle: (setExpand?: boolean) => void;
   onEnter: (hasContent: boolean) => void;
   swap: (direction: 'Prev' | 'Next') => void;
-}
-
-
-interface Position {
-  row: number,
-  column: number,
 }
 
 
@@ -149,8 +144,7 @@ export class Line extends React.Component<Props, State> {
       }
       const offset = markdownSourceOffset(source, selection.anchorNode, selection.anchorOffset);
       const position = offsetToLineNumber(source, offset);
-
-      this.setState({ position }, edit);
+      edit(position);
     }
   };
 
@@ -161,10 +155,6 @@ export class Line extends React.Component<Props, State> {
 
 
   handleChange = (editor: EditorState) => {
-    const selection = editor.getSelection();
-    if (!selection.getHasFocus()) {
-      editor = EditorState.acceptSelection(editor, selection.set('hasFocus', true) as SelectionState);
-    }
     this.props.onChange(editor)
   };
   onBlur = () => {

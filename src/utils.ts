@@ -2,6 +2,12 @@ import { EditorState } from "draft-js";
 
 export const empty = () => {};
 
+export interface Position {
+  row: number,
+  column: number,
+}
+
+
 export const scrollInto = (element: Element) => {
   if (isElementInViewport(element))
     return;
