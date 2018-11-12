@@ -3,11 +3,3 @@
   padding-left: 2em;
   position: relative;
 }
-
-.editing {
-  background-color: aqua;
-}
-
-.document {
-  min-height: 0.8em;
-}

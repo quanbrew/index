@@ -2,6 +2,7 @@ import * as React from 'react';
 import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import { Position, Select } from "../utils";
 import classNames from 'classnames';
+import "./Line.css";
 
 const ReactMarkdown = require('react-markdown');
 
@@ -164,11 +165,9 @@ export class Line extends React.Component<Props, State> {
     }
   };
 
-
   hasContent(): boolean {
     return this.props.editor.getCurrentContent().hasText()
   }
-
 
   handleChange = (editor: EditorState) => {
     this.props.onChange(editor)

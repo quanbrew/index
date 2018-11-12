@@ -1,0 +1,12 @@
+.editing {
+  font-family: monospace;
+  background-color: aqua;
+}
+
+.document {
+  min-height: 0.8em;
+}
+
+.document:focus {
+  outline: 0 solid transparent;
+}
