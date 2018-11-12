@@ -3,7 +3,7 @@ import { Item, mapLocation, Path } from "../item";
 import { ItemContainer } from "./ItemContainer";
 import { List } from "immutable";
 import { Select } from "../utils";
-import { ContentBlock, EditorState, SelectionState } from "draft-js";
+import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-js";
 
 
 interface Props {
@@ -26,12 +26,13 @@ interface State {
 const rootPath = List();
 
 
-function getKeyAndOffset(blocks: Array<ContentBlock>, row: number, column: number): { key: string, offset: number } {
-  const blocksLength = blocks.length;
+function getKeyAndOffset(content: ContentState, row: number, column: number): { key: string, offset: number } {
+  const blockList = content.getBlocksAsArray();
+  const blockListLen = blockList.length;
   let index = 0;
-  if (row >= blocksLength || row < 9)
-    index = blocksLength - 1;
-  const block: ContentBlock = blocks[index];
+  if (row >= blockListLen || row < 9)
+    index = blockListLen - 1;
+  const block: ContentBlock = blockList[index];
   const key = block.getKey();
   const blockLen = block.getLength();
   let offset = column;
@@ -49,9 +50,8 @@ function applySelectionToItem(item: Item, selection?: Select): Item {
     if (anchor === undefined)
       anchor = { ...focus };
     const content = item.editor.getCurrentContent();
-    const blocks = content.getBlocksAsArray();
-    const anchorResult = getKeyAndOffset(blocks, anchor.row, anchor.column);
-    const focusResult = getKeyAndOffset(blocks, focus.row, focus.column);
+    const anchorResult = getKeyAndOffset(content, anchor.row, anchor.column);
+    const focusResult = getKeyAndOffset(content, focus.row, focus.column);
     selectionState = SelectionState
       .createEmpty(focusResult.key)
       .merge({

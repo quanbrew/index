@@ -110,6 +110,24 @@ function Text(props: object) {
 }
 
 
+function getPosition(source: string, node: Node, offset: number): Position {
+  if (node instanceof HTMLElement && node.className === 'document') {
+    const child = node.childNodes[offset];
+    if (child instanceof HTMLElement) {
+      const sourceRange = sourcePosition(source, child);
+      return offsetToLineNumber(source, sourceRange.start);
+    }
+    else {
+      return { column: 0, row: 0 }
+    }
+  }
+  else {
+    const sourceOffset = markdownSourceOffset(source, node, offset);
+    return offsetToLineNumber(source, sourceOffset);
+  }
+}
+
+
 export class Line extends React.Component<Props, State> {
   editorRef: React.RefObject<Editor>;
   documentRef: React.RefObject<HTMLDivElement>;
@@ -128,14 +146,9 @@ export class Line extends React.Component<Props, State> {
       e.preventDefault();
       const source = editor.getCurrentContent().getPlainText();
       const selection = getSelection();
-      if (!selection.isCollapsed) {
-        edit();
-      }
-      const anchorOffset = markdownSourceOffset(source, selection.anchorNode, selection.anchorOffset);
-      const focusOffset = markdownSourceOffset(source, selection.focusNode, selection.focusOffset);
-      const anchor = offsetToLineNumber(source, anchorOffset);
-      const focus = offsetToLineNumber(source, focusOffset);
-      edit({ anchor, focus });
+      const focus = getPosition(source, selection.focusNode, selection.focusOffset);
+      const anchor = getPosition(source, selection.anchorNode, selection.anchorOffset);
+      edit({ focus, anchor });
     }
   };
 
@@ -266,7 +279,7 @@ export class Line extends React.Component<Props, State> {
 
   renderMarkdown() {
     const allowedTypes = [
-      'root', 'text', 'emphasis', 'strong', 'link', 'inlineCode',
+      'root', 'text', 'emphasis', 'strong', 'link', 'inlineCode', 'image'
     ];
 
     return (
