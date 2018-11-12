@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Item, mapLocation, Path } from "../item";
 import { ItemContainer } from "./ItemContainer";
 import { List } from "immutable";
-import { Position } from "../utils";
-import { EditorState, SelectionState } from "draft-js";
+import { Select } from "../utils";
+import { ContentBlock, EditorState, SelectionState } from "draft-js";
 
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
 
 export interface EditState {
   path: Path;
-  position?: Position;
+  selection?: Select;
 }
 
 
@@ -26,25 +26,48 @@ interface State {
 const rootPath = List();
 
 
-function applyPositionToItem(item: Item, position?: Position) {
-  const editor = item.editor;
-  let selection;
-  if (position !== undefined) {
-    const { column, row } = position;
-    const content = editor.getCurrentContent();
-    selection = SelectionState
-      .createEmpty(content.getBlocksAsArray()[row].getKey())
+function getKeyAndOffset(blocks: Array<ContentBlock>, row: number, column: number): { key: string, offset: number } {
+  const blocksLength = blocks.length;
+  let index = 0;
+  if (row >= blocksLength || row < 9)
+    index = blocksLength - 1;
+  const block: ContentBlock = blocks[index];
+  const key = block.getKey();
+  const blockLen = block.getLength();
+  let offset = column;
+  if (column > blockLen || column < 0) {
+    offset = blockLen;
+  }
+  return { key, offset }
+}
+
+
+function applySelectionToItem(item: Item, selection?: Select): Item {
+  let selectionState;
+  if (selection !== undefined) {
+    let { anchor, focus } = selection;
+    if (anchor === undefined)
+      anchor = { ...focus };
+    const content = item.editor.getCurrentContent();
+    const blocks = content.getBlocksAsArray();
+    const anchorResult = getKeyAndOffset(blocks, anchor.row, anchor.column);
+    const focusResult = getKeyAndOffset(blocks, focus.row, focus.column);
+    selectionState = SelectionState
+      .createEmpty(focusResult.key)
       .merge({
         'hasFocus': true,
-        'anchorOffset': column,
-        'focusOffset': column,
+        'anchorKey': anchorResult.key,
+        'focusKey': focusResult.key,
+        'anchorOffset': anchorResult.offset,
+        'focusOffset': focusResult.offset,
       });
   }
   else {
-    selection = editor.getSelection().set('hasFocus', true);
+    selectionState = item.editor.getSelection().set('hasFocus', true);
   }
-  const nextEditor = EditorState.forceSelection(editor, selection as SelectionState);
-  return { ...item, editor: nextEditor }
+  const editor = EditorState
+    .forceSelection(item.editor, selectionState as SelectionState);
+  return { ...item, editor }
 }
 
 
@@ -57,7 +80,7 @@ export class Root extends React.Component<Props, State> {
         nextRoot = mapLocation(
           this.props.item,
           editing.path,
-          item => applyPositionToItem(item, editing.position)
+          item => applySelectionToItem(item, editing.selection)
         );
       }
       this.props.update(nextRoot, () => this.setState({ editing }, callback));

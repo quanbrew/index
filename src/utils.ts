@@ -8,6 +8,12 @@ export interface Position {
 }
 
 
+export interface Select {
+  anchor?: Position,
+  focus: Position,
+}
+
+
 export const scrollInto = (element: Element) => {
   if (isElementInViewport(element))
     return;

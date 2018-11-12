@@ -5,6 +5,7 @@ import 'draft-js/dist/Draft.css';
 import { Bullet } from "./Bullet";
 import { Line } from "./Line";
 import { EditState } from "./Root";
+import { Select } from "../utils";
 
 
 interface Props {
@@ -70,7 +71,9 @@ export class ItemContainer extends React.Component<Props, State> {
     const { updateTree, path, edit, prev, item } = this.props;
     const index = path.last(null);
     if (index === null || (skipChildrenCheck !== true && !item.children.isEmpty())) return;
-    updateTree(tree => remove(tree, path), () => edit({ path: prev }));
+    const focus = { column: -1, row: -1 };
+    const editing: EditState = { path: prev, selection: { focus } };
+    updateTree(tree => remove(tree, path), () => edit(editing));
   };
 
   private displayChild = (currentItem: Item, index: number) => {
@@ -130,19 +133,19 @@ export class ItemContainer extends React.Component<Props, State> {
     );
   };
 
-  navigateNext = () => {
+  navigateNext = (selection?: Select) => {
     const { edit, next, item, path } = this.props;
     if (item.children.size !== 0 && item.expand)
-      edit({ path: path.push(0) }); // enter next level
+      edit({ path: path.push(0), selection }); // enter next level
     else if (!path.isEmpty() && next.isEmpty()) return;
     else {
-      edit({ path: next })
+      edit({ path: next, selection })
     }
   };
 
-  navigatePrev = () => {
+  navigatePrev = (selection?: Select) => {
     const { edit, prev } = this.props;
-    edit({ path: prev });
+    edit({ path: prev, selection });
   };
 
   constructor(props: Props) {
@@ -181,7 +184,7 @@ export class ItemContainer extends React.Component<Props, State> {
             editor={ item.editor }
             onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
             isEditing={ isEditing }
-            edit={ (position, callback) => edit({ path, position }, callback) }
+            edit={ (selection, callback) => edit({ path, selection }, callback) }
             exit={ callback => edit(undefined, callback) }
             navigateNext={ this.navigateNext }
             navigatePrev={ this.navigatePrev }
