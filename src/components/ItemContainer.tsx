@@ -5,6 +5,7 @@ import 'draft-js/dist/Draft.css';
 import { Bullet } from "./Bullet";
 import { Line } from "./Line";
 import { EditState } from "./Root";
+import { Position } from "../utils";
 
 
 interface Props {
@@ -70,7 +71,8 @@ export class ItemContainer extends React.Component<Props, State> {
     const { updateTree, path, edit, prev, item } = this.props;
     const index = path.last(null);
     if (index === null || (skipChildrenCheck !== true && !item.children.isEmpty())) return;
-    updateTree(tree => remove(tree, path), () => edit({ path: prev }));
+    const editing: EditState = { path: prev, position: { column: -1, row: -1 } };
+    updateTree(tree => remove(tree, path), () => edit(editing));
   };
 
   private displayChild = (currentItem: Item, index: number) => {
@@ -130,19 +132,19 @@ export class ItemContainer extends React.Component<Props, State> {
     );
   };
 
-  navigateNext = () => {
+  navigateNext = (position?: Position) => {
     const { edit, next, item, path } = this.props;
     if (item.children.size !== 0 && item.expand)
-      edit({ path: path.push(0) }); // enter next level
+      edit({ path: path.push(0), position }); // enter next level
     else if (!path.isEmpty() && next.isEmpty()) return;
     else {
-      edit({ path: next })
+      edit({ path: next, position })
     }
   };
 
-  navigatePrev = () => {
+  navigatePrev = (position?: Position) => {
     const { edit, prev } = this.props;
-    edit({ path: prev });
+    edit({ path: prev, position });
   };
 
   constructor(props: Props) {

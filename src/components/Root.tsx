@@ -26,25 +26,31 @@ interface State {
 const rootPath = List();
 
 
-function applyPositionToItem(item: Item, position?: Position) {
-  const editor = item.editor;
+function applyPositionToItem(item: Item, position?: Position): Item {
   let selection;
   if (position !== undefined) {
     const { column, row } = position;
-    const content = editor.getCurrentContent();
+    if (column === -1 && row === -1) {
+      return { ...item, editor: EditorState.moveFocusToEnd(item.editor) }
+    }
+    const content = item.editor.getCurrentContent();
+    const blocks = content.getBlocksAsArray();
+    const block_length = blocks[row].getLength();
+    const offset = column <= block_length ? column : block_length;
     selection = SelectionState
       .createEmpty(content.getBlocksAsArray()[row].getKey())
       .merge({
         'hasFocus': true,
-        'anchorOffset': column,
-        'focusOffset': column,
+        'anchorOffset': offset,
+        'focusOffset': offset,
       });
   }
   else {
-    selection = editor.getSelection().set('hasFocus', true);
+    selection = item.editor.getSelection().set('hasFocus', true);
   }
-  const nextEditor = EditorState.forceSelection(editor, selection as SelectionState);
-  return { ...item, editor: nextEditor }
+  const editor = EditorState
+    .acceptSelection(item.editor, selection as SelectionState);
+  return { ...item, editor }
 }
 
 

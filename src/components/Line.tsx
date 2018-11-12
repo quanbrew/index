@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding, SelectionState } from 'draft-js';
+import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import { Position } from "../utils";
 import classNames from 'classnames';
 
@@ -12,8 +12,8 @@ interface Props {
   isEditing: boolean;
   edit: (position?: Position, callback?: () => void) => void;
   exit: (callback?: () => void) => void;
-  navigateNext: () => void;
-  navigatePrev: () => void;
+  navigateNext: (position?: Position) => void;
+  navigatePrev: (position?: Position) => void;
   indent: () => void;
   unIndent: () => void;
   remove: () => void;
@@ -120,18 +120,6 @@ export class Line extends React.Component<Props, State> {
     this.editorRef = React.createRef();
   }
 
-  static editorApplySelection(editor: EditorState, row: number = 0, column: number = 0): EditorState {
-    const content = editor.getCurrentContent();
-    const selection = SelectionState
-      .createEmpty(content.getBlocksAsArray()[row].getKey())
-      .merge({
-        'hasFocus': true,
-        'anchorOffset': column,
-        'focusOffset': column,
-      });
-    return EditorState.acceptSelection(editor, selection as SelectionState)
-  }
-
   handleClick = (e: React.MouseEvent) => {
     const { editor, edit, isEditing } = this.props;
     e.stopPropagation();
@@ -161,6 +149,14 @@ export class Line extends React.Component<Props, State> {
     if (document.hasFocus())
       this.props.exit();
   };
+
+  getCurrentPosition(): Position | undefined {
+    const { editor } = this.props;
+    const selection = editor.getSelection();
+    const column = selection.getFocusOffset();
+    const row = 0;  // TODO: detect row
+    return { column, row }
+  }
   private onTab = (e: React.KeyboardEvent) => {
     e.preventDefault();
     if (e.shiftKey) {
@@ -176,7 +172,7 @@ export class Line extends React.Component<Props, State> {
       this.props.swap('Prev');
     }
     else {
-      this.props.navigatePrev();
+      this.props.navigatePrev(this.getCurrentPosition());
     }
   };
   private onDownArrow = (e: React.KeyboardEvent) => {
@@ -185,7 +181,7 @@ export class Line extends React.Component<Props, State> {
       this.props.swap('Next');
     }
     else {
-      this.props.navigateNext()
+      this.props.navigateNext(this.getCurrentPosition())
     }
   };
   private handleReturn = (): DraftHandleValue => {
@@ -270,6 +266,7 @@ export class Line extends React.Component<Props, State> {
           source={ this.props.editor.getCurrentContent().getPlainText() }
           renderers={ { text: Text } }
           allowedTypes={ allowedTypes }
+          onClick={ this.handleClick }
         />
       </div>
     );
