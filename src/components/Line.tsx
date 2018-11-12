@@ -119,8 +119,11 @@ function getPosition(source: string, node: Node, offset: number): Position {
       return offsetToLineNumber(source, sourceRange.start);
     }
     else {
-      return { column: 0, row: 0 }
+      throw Error('document child is not element');
     }
+  }
+  else if (node === null) {
+    return { column: 0, row: 0 }
   }
   else {
     const sourceOffset = markdownSourceOffset(source, node, offset);
@@ -153,18 +156,6 @@ export class Line extends React.Component<Props, State> {
     }
   };
 
-  handleMouseMove = (e: React.MouseEvent) => {
-    if (!this.state.release) {
-      if (e.buttons === 0) {
-
-        this.setState({ release: true });
-        return;
-      }
-      const range = document.caretRangeFromPoint(e.clientX, e.clientY);
-      getSelection().extend(range.endContainer, range.endOffset);
-    }
-  };
-
   hasContent(): boolean {
     return this.props.editor.getCurrentContent().hasText()
   }
@@ -181,7 +172,7 @@ export class Line extends React.Component<Props, State> {
     const { editor } = this.props;
     const selection = editor.getSelection();
     const column = selection.getFocusOffset();
-    const row = 0;  // TODO: detect row
+    const row = -1;
     const focus = { column, row };
     return { focus }
   }
