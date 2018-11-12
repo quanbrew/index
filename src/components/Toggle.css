@@ -1,12 +1,13 @@
-.bullet {
+.toggle {
+  display: none;
   position: absolute;
-  left: 3rem;
+  left: 1.75rem;
   width: 1rem;
   height: 1rem;
   color: cornflowerblue;
   cursor: pointer;
-  text-decoration: none;
   user-select: none;
+  text-decoration: none;
   -moz-user-select: none;
   -webkit-user-select: none;
 }

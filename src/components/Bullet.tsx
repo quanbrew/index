@@ -1,11 +1,12 @@
 import * as React from 'react';
+import { Link } from "react-router-dom";
 import './Bullet.css';
 
 
 interface Props {
-  onClick?: () => void;
   expand: boolean;
   hasChild: boolean;
+  id: string;
 }
 
 
@@ -15,14 +16,7 @@ interface State {
 
 export class Bullet extends React.PureComponent<Props, State> {
   render() {
-    const { onClick, hasChild, expand } = this.props;
-    let symbol = '•';
-    if (hasChild && expand) {
-      symbol = '-';
-    }
-    else if (hasChild && !expand) {
-      symbol = '+';
-    }
-    return <a className='bullet' onClick={ onClick }>{ symbol }</a>;
+    const zoomPath = `/${ this.props.id }`;
+    return <Link className='bullet' to={ zoomPath }>•</Link>;
   }
 }

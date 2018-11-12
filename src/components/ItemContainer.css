@@ -1,5 +1,13 @@
 
 .ItemContainer {
-  padding-left: 2em;
+  padding-left: 1em;
   position: relative;
+}
+
+.item-content {
+  padding-left: 3rem;
+}
+
+.item-content:hover .toggle {
+  display: block;
 }

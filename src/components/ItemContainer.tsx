@@ -6,6 +6,7 @@ import { Bullet } from "./Bullet";
 import { Line } from "./Line";
 import { EditState } from "./Root";
 import { Select } from "../utils";
+import { Toggle } from "./Toggle";
 
 
 interface Props {
@@ -175,11 +176,12 @@ export class ItemContainer extends React.Component<Props, State> {
     const { item, path, editing, edit } = this.props;
     const isEditing = editing !== undefined && path.equals(editing.path);
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
+    const hasChild = !item.children.isEmpty();
     return (
       <div className='ItemContainer'>
         <div className="item-content">
-          <Bullet expand={ item.expand } hasChild={ !item.children.isEmpty() }/>
-          { /*<Zoom id={ item.id }/>*/ }
+          { hasChild ? <Toggle toggle={ () => this.toggle() } isExpanded={ item.expand }/> : null }
+          <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild }/>
           <Line
             editor={ item.editor }
             onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
