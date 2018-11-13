@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createItem, insert, isSubPathOf, Item, itemTail, mapLocation, Path, remove, update } from "../item";
+import { createItem, insert, isSubPathOf, Item, itemTail, mapLocation, Path, remove } from "../item";
 import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import { Bullet } from "./Bullet";
@@ -28,7 +28,7 @@ interface State {
 export class ItemContainer extends React.Component<Props, State> {
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
-    updateTree(tree => update(tree, item, path), callback)
+    updateTree(tree => mapLocation(tree, path, () => item), callback)
   }
 
   private toggle = (setExpand?: boolean) => {

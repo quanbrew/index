@@ -41,7 +41,6 @@ function applySelectionToItem(item: Item, selection?: Select): Item {
     const block: ContentBlock = blockList[index];
     const key = block.getKey();
     const blockLen = block.getLength();
-    debugger;
     let offset = column;
     if (column > blockLen || column < 0) {
       offset = blockLen;

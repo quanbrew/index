@@ -154,15 +154,6 @@ export const insert = (tree: Item, items: Array<Item>, path: Path, remove: numbe
 };
 
 
-export const update = (tree: Item, item: Item, path: Path): Item => {
-  if (path.isEmpty()) {
-    return item;
-  }
-  else {
-    return insert(tree, [item], path, 1);
-  }
-};
-
 // Get last descendant item
 export const itemTail = (path: Path, item: Item): Path => {
   const last = item.children.last(null);
