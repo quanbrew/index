@@ -1,5 +1,6 @@
 import { List } from "immutable";
-import { ContentState, EditorState } from "draft-js";
+import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-js";
+import { Select } from "./utils";
 
 const uuid1 = require('uuid/v1');
 
@@ -27,17 +28,31 @@ export const addChild = (parent: Item, child: Item, position?: number): Item => 
 };
 
 
-export const findItem = (item: Item, id: string): Item | null => {
+export const findItemById = (item: Item, id: string): { item: Item, path: Path } | null => {
+  let path = List();
   if (item.id === id)
-    return item;
+    return { item, path };
   for (let i = 0; i < item.children.size; i++) {
-    const result = findItem(item.children.get(i) as Item, id);
+    const result = findItemById(item.children.get(i) as Item, id);
     if (result !== null)
-      return result;
+      return { item: result.item, path: path.push(i).concat(result.path) };
   }
   return null;
 };
 
+
+export const findItemByPath = (item: Item, path: Path): Item | null => {
+  const index = path.first(null);
+  if (index === null) {
+    return item;
+  }
+  else {
+    const child = item.children.get(index, null);
+    if (child === null)
+      return null;
+    return findItemByPath(child, path.rest());
+  }
+};
 
 export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): Item => {
   const rnd1 = Math.random();
@@ -160,3 +175,53 @@ export const itemTail = (path: Path, item: Item): Path => {
   if (last === null) return path;
   else return itemTail(path.push(item.children.size - 1), last);
 };
+
+
+export function applySelectionToItem(item: Item, selection?: Select): Item {
+  interface KeyAndOffset {
+    key: string,
+    offset: number
+  }
+
+  function getKeyAndOffset(row: number, column: number): KeyAndOffset {
+    const blockList = item.editor.getCurrentContent().getBlocksAsArray();
+    const blockListLen = blockList.length;
+    let index = row;
+    if (row >= blockListLen || row < 0)
+      index = blockListLen - 1;
+    const block: ContentBlock = blockList[index];
+    const key = block.getKey();
+    const blockLen = block.getLength();
+    let offset = column;
+    if (column > blockLen || column < 0) {
+      offset = blockLen;
+    }
+    return { key, offset }
+  }
+
+
+  let selectionState;
+  if (selection !== undefined) {
+    let { anchor, focus } = selection;
+    if (anchor === undefined)
+      anchor = { ...focus };
+    const anchorResult = getKeyAndOffset(anchor.row, anchor.column);
+    const focusResult = getKeyAndOffset(focus.row, focus.column);
+    selectionState = SelectionState
+      .createEmpty(focusResult.key)
+      .merge({
+        'hasFocus': true,
+        'anchorKey': anchorResult.key,
+        'focusKey': focusResult.key,
+        'anchorOffset': anchorResult.offset,
+        'focusOffset': focusResult.offset,
+      });
+  }
+  else {
+    selectionState = item.editor.getSelection().set('hasFocus', true);
+  }
+  const editor = EditorState
+    .forceSelection(item.editor, selectionState as SelectionState);
+  return { ...item, editor }
+}
+

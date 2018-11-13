@@ -4,9 +4,10 @@ import './ItemContainer.css';
 import 'draft-js/dist/Draft.css';
 import { Bullet } from "./Bullet";
 import { Line } from "./Line";
-import { EditState } from "./Root";
+import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
+import { List } from "immutable";
 
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   path: Path;
   next: Path;
   prev: Path;
+  // start render at this path.
+  start: Path | 'started';
   editing?: EditState;
   edit: (state?: EditState, callback?: () => void) => void;
   updateTree: (mapper: (prev: Item) => Item, callback?: () => void) => void;
@@ -96,7 +99,7 @@ export class ItemContainer extends React.Component<Props, State> {
       <ItemContainer
         item={ currentItem } key={ currentItem.id } editing={ editing }
         path={ path.push(index) } prev={ prevPath } next={ nextPath } edit={ edit }
-        updateTree={ updateTree }
+        updateTree={ updateTree } start="started"
       />
     );
   };
@@ -162,18 +165,41 @@ export class ItemContainer extends React.Component<Props, State> {
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
-    const { editing, path, item } = this.props;
+    const { editing, path, item, start } = this.props;
     return (
       item.expand !== nextProps.item.expand
       || item.children !== nextProps.item.children
       || nextProps.editing !== undefined && isSubPathOf(nextProps.path, nextProps.editing.path)
       || editing !== undefined && isSubPathOf(path, editing.path)
       || item.editor !== nextProps.item.editor
+      || start !== nextProps.start
     );
   }
 
+  dispatch(start: Path) {
+    const { item, path, editing, edit, updateTree } = this.props;
+    if (!isSubPathOf(path, start)) {
+      return null;
+    }
+
+    const emptyPath = List();
+    return item.children.map((child, index) => {
+      const childPath = path.push(index);
+      return (
+        <ItemContainer
+          item={ child } key={ child.id } edit={ edit }
+          updateTree={ updateTree } start={ start } editing={ editing }
+          path={ childPath } prev={ emptyPath } next={ childPath }
+        />
+      )
+    });
+  }
+
   render() {
-    const { item, path, editing, edit } = this.props;
+    const { item, path, editing, edit, start } = this.props;
+    if (start !== "started" && !start.equals(path)) {
+      return this.dispatch(start);
+    }
     const isEditing = editing !== undefined && path.equals(editing.path);
     const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     const hasChild = !item.children.isEmpty();
@@ -181,21 +207,16 @@ export class ItemContainer extends React.Component<Props, State> {
       <div className='ItemContainer'>
         <div className="item-content">
           { hasChild ? <Toggle toggle={ () => this.toggle() } isExpanded={ item.expand }/> : null }
-          <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild }/>
+          <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild } path={ path }/>
           <Line
-            editor={ item.editor }
             onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
-            isEditing={ isEditing }
+            editor={ item.editor } isEditing={ isEditing }
             edit={ (selection, callback) => edit({ path, selection }, callback) }
             exit={ callback => edit(undefined, callback) }
-            navigateNext={ this.navigateNext }
-            navigatePrev={ this.navigatePrev }
-            indent={ this.indent }
-            unIndent={ this.unIndent }
-            remove={ this.remove }
-            toggle={ this.toggle }
             onEnter={ this.onEnter }
-            swap={ this.swap }
+            navigateNext={ this.navigateNext } navigatePrev={ this.navigatePrev }
+            indent={ this.indent } unIndent={ this.unIndent }
+            remove={ this.remove } toggle={ this.toggle } swap={ this.swap }
           />
         </div>
         { this.state.loadChildren ? children : <p>loading...</p> }

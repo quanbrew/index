@@ -1,11 +1,12 @@
 import * as React from 'react';
 import './App.css';
-import { findItem, Item, randomTree } from "../item";
-import { Root } from "./Root";
+import { findItemById, findItemByPath, Item, Path, randomTree } from "../item";
+import { ItemList } from "./ItemList";
 import { BrowserRouter as Router, Route, RouteComponentProps } from "react-router-dom";
 import { Switch } from "react-router";
 import { NotFound } from "./NotFound";
 import ScrollToTop from "./ScrollToTop";
+import { List } from "immutable";
 
 
 interface Props {
@@ -25,34 +26,51 @@ class App extends React.Component<Props, State> {
     this.state = { root };
   }
 
-  renderItemById = ({ match }: RouteComponentProps<{ id: string }>) => {
-    const item = findItem(this.state.root, match.params.id);
-    if (item === null)
-      return <NotFound/>;
-    else
-      return this.renderItem(item);
+  renderItemById = (routeProps: RouteComponentProps<{ id: string }>) => {
+    const { match } = routeProps;
+    const { root } = this.state;
+    const targetPathArray = routeProps.location.state["targetPathArray"];
+    let path;
+    if (targetPathArray !== undefined) {
+      path = List(targetPathArray as Array<number>);
+      const item = findItemByPath(root, path);
+      if (item === null) {
+        return <NotFound/>
+      }
+    }
+    else {
+      const result = findItemById(root, match.params.id);
+      if (result === null) {
+        return <NotFound/>;
+      }
+      path = result.path;
+    }
+    return this.renderItem(path);
   };
 
-  renderItem = (item: Item) => {
+  renderItem = (path?: Path) => {
+    const item = this.state.root;
+    if (path === undefined)
+      path = List();
     return (
-      <Root
+      <ItemList
         key={ item.id }
         item={ item }
         update={ this.update }
+        // only render items which start with this path
+        startPath={ path }
       />
     )
   };
 
   public render() {
-    const { root } = this.state;
-
     return (
       <Router>
         <ScrollToTop>
           <main className='App'>
             <Switch>
-              <Route path="/" exact render={ () => this.renderItem(root) }/>
-              <Route path="/:id" render={ this.renderItemById }/>
+              <Route path="/" exact render={ () => this.renderItem() }/>
+              <Route path="/id/:id" render={ this.renderItemById }/>
               <Route component={ NotFound }/>
             </Switch>
           </main>
