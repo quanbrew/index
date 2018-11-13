@@ -27,19 +27,20 @@ class App extends React.Component<Props, State> {
   }
 
   renderItemById = (routeProps: RouteComponentProps<{ id: string }>) => {
-    const { match } = routeProps;
+    const { match, location } = routeProps;
     const { root } = this.state;
-    const targetPathArray = routeProps.location.state["targetPathArray"];
+    const { id } = match.params;
     let path;
+    const targetPathArray = location.state && location.state["targetPathArray"];
     if (targetPathArray !== undefined) {
       path = List(targetPathArray as Array<number>);
       const item = findItemByPath(root, path);
-      if (item === null) {
+      if (item === null || item.id !== id) {
         return <NotFound/>
       }
     }
     else {
-      const result = findItemById(root, match.params.id);
+      const result = findItemById(root, id);
       if (result === null) {
         return <NotFound/>;
       }
@@ -55,7 +56,7 @@ class App extends React.Component<Props, State> {
     return (
       <ItemList
         key={ item.id }
-        item={ item }
+        root={ item }
         update={ this.update }
         // only render items which start with this path
         startPath={ path }

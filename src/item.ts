@@ -1,6 +1,7 @@
 import { List } from "immutable";
 import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-js";
 import { Select } from "./utils";
+import { LocationDescriptorObject } from "history";
 
 const uuid1 = require('uuid/v1');
 
@@ -224,4 +225,28 @@ export function applySelectionToItem(item: Item, selection?: Select): Item {
     .forceSelection(item.editor, selectionState as SelectionState);
   return { ...item, editor }
 }
+
+
+export const pathItem = (path: Path, item: Item): List<Item> => {
+  const items = List().push(item);
+  const index = path.first(null);
+  if (index === null)
+    return items;
+  else {
+    const child = item.children.get(index, null);
+    if (child === null) {
+      throw Error('wrong path index')
+    }
+    const subPath = pathItem(path.rest(), child);
+    return items.concat(subPath);
+  }
+};
+
+
+export const itemLinkLocation = (id: string, path: Path): LocationDescriptorObject<{ targetPathArray: Array<number> }> => {
+  return ({
+    pathname: `/id/${ id }`,
+    state: { targetPathArray: path.toJS() }
+  })
+};
 
