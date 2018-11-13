@@ -3,7 +3,7 @@ import { Item, mapLocation, Path } from "../item";
 import { ItemContainer } from "./ItemContainer";
 import { List } from "immutable";
 import { Select } from "../utils";
-import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-js";
+import { ContentBlock, EditorState, SelectionState } from "draft-js";
 
 
 interface Props {
@@ -26,32 +26,37 @@ interface State {
 const rootPath = List();
 
 
-function getKeyAndOffset(content: ContentState, row: number, column: number): { key: string, offset: number } {
-  const blockList = content.getBlocksAsArray();
-  const blockListLen = blockList.length;
-  let index = 0;
-  if (row >= blockListLen || row < 9)
-    index = blockListLen - 1;
-  const block: ContentBlock = blockList[index];
-  const key = block.getKey();
-  const blockLen = block.getLength();
-  let offset = column;
-  if (column > blockLen || column < 0) {
-    offset = blockLen;
-  }
-  return { key, offset }
-}
-
-
 function applySelectionToItem(item: Item, selection?: Select): Item {
+  interface KeyAndOffset {
+    key: string,
+    offset: number
+  }
+
+  function getKeyAndOffset(row: number, column: number): KeyAndOffset {
+    const blockList = item.editor.getCurrentContent().getBlocksAsArray();
+    const blockListLen = blockList.length;
+    let index = row;
+    if (row >= blockListLen || row < 0)
+      index = blockListLen - 1;
+    const block: ContentBlock = blockList[index];
+    const key = block.getKey();
+    const blockLen = block.getLength();
+    debugger;
+    let offset = column;
+    if (column > blockLen || column < 0) {
+      offset = blockLen;
+    }
+    return { key, offset }
+  }
+
+
   let selectionState;
   if (selection !== undefined) {
     let { anchor, focus } = selection;
     if (anchor === undefined)
       anchor = { ...focus };
-    const content = item.editor.getCurrentContent();
-    const anchorResult = getKeyAndOffset(content, anchor.row, anchor.column);
-    const focusResult = getKeyAndOffset(content, focus.row, focus.column);
+    const anchorResult = getKeyAndOffset(anchor.row, anchor.column);
+    const focusResult = getKeyAndOffset(focus.row, focus.column);
     selectionState = SelectionState
       .createEmpty(focusResult.key)
       .merge({
@@ -91,9 +96,6 @@ export class Root extends React.Component<Props, State> {
     const root = mapper(this.props.item);
     this.props.update(root, callback);
   };
-
-  componentDidMount() {
-  }
 
   constructor(props: Props) {
     super(props);
