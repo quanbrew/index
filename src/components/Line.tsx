@@ -111,6 +111,19 @@ function Text(props: object) {
 }
 
 
+function Link(props: object) {
+  return (
+    <a
+      contentEditable={ false }
+      data-sourcepos={ props['data-sourcepos'] }
+      href={ props['href'] }
+    >
+      { props['children'] }
+    </a>
+  )
+}
+
+
 function getPosition(source: string, node: Node, offset: number): Position {
   if (node instanceof HTMLElement && node.className === 'document') {
     const child = node.childNodes[offset];
@@ -286,7 +299,7 @@ export class Line extends React.Component<Props, State> {
           containerTagName="span"
           unwrapDisallowed
           source={ this.props.editor.getCurrentContent().getPlainText() }
-          renderers={ { text: Text } }
+          renderers={ { text: Text, link: Link } }
           allowedTypes={ allowedTypes }
         />
       </div>
