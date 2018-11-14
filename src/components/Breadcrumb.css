@@ -1,7 +1,8 @@
 .Breadcrumb {
   padding: 0;
-  margin: 0;
+  margin: 0 0 1em;
   list-style: none;
+  font-size: 85%;
 }
 
 .Breadcrumb-item {
