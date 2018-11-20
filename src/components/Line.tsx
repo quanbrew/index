@@ -290,6 +290,7 @@ export class Line extends React.Component<Props, State> {
         ref={ this.documentRef }
         className="document"
         contentEditable
+        spellCheck={ false }
         suppressContentEditableWarning
         onSelect={ this.handleSelectMarkdown }
       >
