@@ -62,6 +62,7 @@ export class ItemList extends React.Component<Props, State> {
           item={ root } edit={ this.edit } editing={ this.state.editing }
           path={ emptyPath } next={ emptyPath } prev={ emptyPath }
           updateTree={ this.updateRoot } start={ startPath }
+          parentId={ null } previousId={ null }
         />
       </div>
     );

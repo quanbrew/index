@@ -8,6 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
+import Timer = NodeJS.Timer;
 
 
 interface Props {
@@ -15,6 +16,8 @@ interface Props {
   path: Path;
   next: Path;
   prev: Path;
+  parentId: string | null;
+  previousId: string | null;
   // start render at this path.
   start: Path | 'started';
   editing?: EditState;
@@ -25,10 +28,22 @@ interface Props {
 
 interface State {
   loadChildren: boolean;
+  source: string;
+}
+
+
+interface NewItem {
+  id: string,
+  content: string,
+  parent: string | null,
+  previous: string | null,
+  metadata: object,
 }
 
 
 export class ItemContainer extends React.Component<Props, State> {
+  submitTimer: Timer | null = null;
+
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
     updateTree(tree => mapLocation(tree, path, () => item), callback)
@@ -84,10 +99,14 @@ export class ItemContainer extends React.Component<Props, State> {
     const { path, item, prev, next, updateTree, edit, editing } = this.props;
 
     let prevPath = prev;
+    let previousId = null;
     const prevItem = item.children.get(index - 1);
 
-    if (index === 0) prevPath = path; // move to parent
+    if (index === 0) {
+      prevPath = path; // move to parent
+    }
     else if (prevItem !== undefined) {
+      previousId = prevItem.id;
       if (prevItem.expand)
         prevPath = itemTail(path.push(index - 1), prevItem);
       else
@@ -100,6 +119,7 @@ export class ItemContainer extends React.Component<Props, State> {
         item={ currentItem } key={ currentItem.id } editing={ editing }
         path={ path.push(index) } prev={ prevPath } next={ nextPath } edit={ edit }
         updateTree={ updateTree } start="started"
+        parentId={ item.id } previousId={ previousId }
       />
     );
   };
@@ -154,9 +174,10 @@ export class ItemContainer extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = { loadChildren: true };
+    const source = props.item.editor.getCurrentContent().getPlainText();
+    this.state = { loadChildren: true, source };
     if (!props.item.children.isEmpty() && props.item.expand) {
-      this.state = { loadChildren: false };
+      this.state = { loadChildren: false, source };
       setTimeout(() => {
         this.setState({ loadChildren: true });
         this.forceUpdate();
@@ -176,6 +197,36 @@ export class ItemContainer extends React.Component<Props, State> {
     );
   }
 
+  componentDidUpdate() {
+    if (this.submitTimer !== null) {
+      clearTimeout(this.submitTimer);
+    }
+    this.submitTimer = setTimeout(() => {
+      const source = this.props.item.editor.getCurrentContent().getPlainText();
+      if (this.state.source !== source) {
+        const { id } = this.props.item;
+        const { previousId, parentId } = this.props;
+        const newItem: NewItem = {
+          id: id,
+          content: source,
+          metadata: {},
+          parent: parentId,
+          previous: previousId,
+        };
+        const HOST = process.env.HOST as string;
+        fetch(
+          HOST + "/item/",
+          {
+            method: "POST",
+            body: JSON.stringify([newItem]),
+            headers: { 'content-type': 'application/json' }
+          },
+        ).catch(console.error);
+        this.setState({ source });
+      }
+    }, 250);
+  }
+
   dispatch(start: Path) {
     const { item, path, editing, edit, updateTree } = this.props;
     if (!isSubPathOf(path, start)) {
@@ -190,6 +241,7 @@ export class ItemContainer extends React.Component<Props, State> {
           item={ child } key={ child.id } edit={ edit }
           updateTree={ updateTree } start={ start } editing={ editing }
           path={ childPath } prev={ emptyPath } next={ childPath }
+          parentId={ item.id } previousId={ null }
         />
       )
     });

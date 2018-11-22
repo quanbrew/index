@@ -18,9 +18,6 @@ interface State {
 }
 
 
-const HOST = "http://localhost:8080";
-
-
 interface Row {
   id: string;
   content: string;
@@ -86,7 +83,7 @@ class App extends React.Component<Props, State> {
   update = (root: Item, callback?: () => void) => this.setState({ root }, callback);
 
   getTreeFromServer = () => {
-
+    const HOST: string = process.env.HOST as string;
     fetch(HOST.concat("/item/"))
       .then(response => response.json())
       .then(data => {
