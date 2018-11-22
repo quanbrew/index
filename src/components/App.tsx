@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './App.css';
-import { findItemById, findItemByPath, Item, Path, randomTree } from "../item";
+import { buildEditor, createItem, findItemById, findItemByPath, Item, Path } from "../item";
 import { ItemList } from "./ItemList";
 import { BrowserRouter as Router, Route, RouteComponentProps } from "react-router-dom";
 import { Switch } from "react-router";
@@ -14,16 +14,95 @@ interface Props {
 
 interface State {
   root: Item;
+  loading: boolean;
 }
+
+
+const HOST = "http://localhost:8080";
+
+
+interface Row {
+  id: string;
+  content: string;
+  parent: string | null;
+  fold: boolean;
+  metadata: object;
+  favorite: boolean;
+  tags: Array<string>;
+  created: string;
+  modified: string;
+}
+
+
+type RowMap = { [parent: string]: Array<Row> };
+
+
+const buildTreeByRowMap = (row: Row, map: RowMap): Item => {
+  let children;
+  if (map[row.id] !== undefined) {
+    children = List(map[row.id].map(row => buildTreeByRowMap(row, map)))
+  }
+  else {
+    children = List()
+  }
+  return (
+    {
+      id: row.id,
+      children,
+      editor: buildEditor(row.content),
+      expand: !row.fold,
+    }
+  )
+};
+
+
+const buildTree = (data: Array<Row>): Item => {
+  let root: Row | null = null;
+  let rowMap: RowMap = {};
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const parent = row.parent;
+    if (parent === null) {
+      root = row
+    }
+    else if (rowMap.hasOwnProperty(parent)) {
+      rowMap[parent].push(row);
+    }
+    else {
+      rowMap[parent] = [row];
+    }
+  }
+  if (root === null) {
+    return createItem('');
+  }
+  else {
+    return buildTreeByRowMap(root, rowMap);
+  }
+};
+
 
 
 class App extends React.Component<Props, State> {
   update = (root: Item, callback?: () => void) => this.setState({ root }, callback);
 
+  getTreeFromServer = () => {
+
+    fetch(HOST.concat("/item/"))
+      .then(response => response.json())
+      .then(data => {
+        const root = buildTree(data);
+        this.setState({ root, loading: false });
+      });
+  };
+
   constructor(props: Props) {
     super(props);
-    const root = randomTree();
-    this.state = { root };
+    const root = createItem('');
+    this.state = { root, loading: true };
+  }
+
+  componentDidMount() {
+    this.getTreeFromServer();
   }
 
   renderItemById = (routeProps: RouteComponentProps<{ id: string }>) => {
@@ -65,6 +144,10 @@ class App extends React.Component<Props, State> {
   };
 
   public render() {
+    if (this.state.loading) {
+      return <main><p>loading</p></main>;
+    }
+
     return (
       <Router>
         <ScrollToTop>

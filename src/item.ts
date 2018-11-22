@@ -13,12 +13,12 @@ export interface Item {
 }
 
 
-const content = (text: string) => EditorState.createWithContent(ContentState.createFromText(text));
+export const buildEditor = (text: string) => EditorState.createWithContent(ContentState.createFromText(text));
 
 export const createItem = (source: string = ''): Item => ({
   id: uuid1(),
   children: List(),
-  editor: content(source),
+  editor: buildEditor(source),
   expand: true,
 });
 
@@ -67,7 +67,7 @@ export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): 
   return ({
     id: uuid1(),
     children: children,
-    editor: content(source),
+    editor: buildEditor(source),
     expand: true,
   })
 };
