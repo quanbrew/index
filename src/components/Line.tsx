@@ -131,6 +131,9 @@ function getPosition(source: string, node: Node, offset: number): Position {
       const sourceRange = sourcePosition(source, child);
       return offsetToLineNumber(source, sourceRange.start);
     }
+    else if (child === undefined) {
+      return { row: -1, column: -1 };
+    }
     else {
       throw Error('document child is not element');
     }
