@@ -8,6 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
+import { NewItem, postChangedItems } from "../api";
 import Timer = NodeJS.Timer;
 
 
@@ -29,15 +30,6 @@ interface Props {
 interface State {
   loadChildren: boolean;
   source: string;
-}
-
-
-interface NewItem {
-  id: string,
-  content: string,
-  parent: string | null,
-  previous: string | null,
-  metadata: object,
 }
 
 
@@ -213,16 +205,8 @@ export class ItemContainer extends React.Component<Props, State> {
           parent: parentId,
           previous: previousId,
         };
-        const HOST = process.env.HOST as string;
-        fetch(
-          HOST + "/item/",
-          {
-            method: "POST",
-            body: JSON.stringify([newItem]),
-            headers: { 'content-type': 'application/json' }
-          },
-        ).catch(console.error);
-        this.setState({ source });
+        postChangedItems([newItem])
+          .then(() => this.setState({ source }));
       }
     }, 250);
   }
