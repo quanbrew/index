@@ -187,6 +187,7 @@ export class ItemContainer extends React.Component<Props, State> {
       || editing !== undefined && isSubPathOf(path, editing.path)
       || item.editor !== nextProps.item.editor
       || start !== nextProps.start
+      || !path.equals(nextProps.path)
     );
   }
 
