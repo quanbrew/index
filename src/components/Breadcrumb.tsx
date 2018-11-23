@@ -23,12 +23,12 @@ export class Breadcrumb extends React.PureComponent<Props, State> {
     for (let i = 1; i < path.size; i++) {
       paths.push(path.slice(0, i));
     }
-    const list = paths.map(path => {
+    const list = paths.map((path, key) => {
       const item = findItemByPath(root, path);
       if (item === null)
         throw Error("can't found item by path");
       return (
-        <li className="Breadcrumb-item">
+        <li key={ key } className="Breadcrumb-item">
           <Link to={ itemLinkLocation(item.id, path) }>
             { item.editor.getCurrentContent().getPlainText() }
           </Link>
