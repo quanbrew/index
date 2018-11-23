@@ -111,3 +111,12 @@ export const isSameNewItem = (a: NewItem, b: NewItem) => {
     a.expand === b.expand
   );
 };
+
+
+export const deleteItem = (id: string) => {
+  return fetch(HOST + "/item/", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
+    headers: { 'content-type': 'application/json' },
+  })
+};

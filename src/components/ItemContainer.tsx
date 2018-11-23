@@ -8,7 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
-import { isSameNewItem, makeNewItemFromItem, NewItem, postChangedItems } from "../api";
+import { deleteItem, isSameNewItem, makeNewItemFromItem, NewItem, postChangedItems } from "../api";
 import Timer = NodeJS.Timer;
 
 
@@ -85,6 +85,7 @@ export class ItemContainer extends React.Component<Props, State> {
     const focus = { column: -1, row: -1 };
     const editing: EditState = { path: prev, selection: { focus } };
     updateTree(tree => remove(tree, path), () => edit(editing));
+    deleteItem(this.props.item.id);
   };
 
   private displayChild = (currentItem: Item, index: number) => {
