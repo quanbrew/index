@@ -8,9 +8,8 @@ interface Row {
   id: string;
   content: string;
   parent: string | null;
-  fold: boolean;
+  expand: boolean;
   metadata: object;
-  favorite: boolean;
   tags: Array<string>;
   created: string;
   modified: string;
@@ -33,7 +32,7 @@ const buildTreeByRowMap = (row: Row, map: RowMap): Item => {
       id: row.id,
       children,
       editor: buildEditor(row.content),
-      expand: !row.fold,
+      expand: row.expand,
     }
   )
 };
@@ -75,6 +74,7 @@ export interface NewItem {
   parent: string | null,
   previous: string | null,
   metadata: object,
+  expand: boolean,
 }
 
 
@@ -89,3 +89,25 @@ export const postChangedItems = (items: Array<NewItem>) => {
   );
 };
 
+
+export const makeNewItemFromItem = (item: Item, parent: string | null, previous: string | null): NewItem => {
+  const { id, expand } = item;
+  return (
+    {
+      id,
+      content: item.editor.getCurrentContent().getPlainText(),
+      parent, previous,
+      metadata: {}, expand,
+    }
+  )
+};
+
+export const isSameNewItem = (a: NewItem, b: NewItem) => {
+  return (
+    a.parent === b.parent &&
+    a.content === b.content &&
+    a.previous === b.previous &&
+    a.id === b.id &&
+    a.expand === b.expand
+  );
+};

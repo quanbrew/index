@@ -8,7 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
-import { NewItem, postChangedItems } from "../api";
+import { isSameNewItem, makeNewItemFromItem, NewItem, postChangedItems } from "../api";
 import Timer = NodeJS.Timer;
 
 
@@ -29,12 +29,12 @@ interface Props {
 
 interface State {
   loadChildren: boolean;
-  source: string;
 }
 
 
 export class ItemContainer extends React.Component<Props, State> {
   submitTimer: Timer | null = null;
+  submitRecord: NewItem;
 
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
@@ -166,10 +166,10 @@ export class ItemContainer extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    const source = props.item.editor.getCurrentContent().getPlainText();
-    this.state = { loadChildren: true, source };
+    this.submitRecord = makeNewItemFromItem(props.item, props.parentId, props.previousId);
+    this.state = { loadChildren: true };
     if (!props.item.children.isEmpty() && props.item.expand) {
-      this.state = { loadChildren: false, source };
+      this.state = { loadChildren: false };
       setTimeout(() => {
         this.setState({ loadChildren: true });
         this.forceUpdate();
@@ -189,26 +189,22 @@ export class ItemContainer extends React.Component<Props, State> {
     );
   }
 
+  submitChanged = () => {
+    const { item, parentId, previousId } = this.props;
+    const newItem = makeNewItemFromItem(item, parentId, previousId);
+    if (!isSameNewItem(this.submitRecord, newItem)) {
+      postChangedItems([newItem])
+        .then(() => {
+          this.submitRecord = newItem;
+        });
+    }
+  };
+
   componentDidUpdate() {
     if (this.submitTimer !== null) {
       clearTimeout(this.submitTimer);
     }
-    this.submitTimer = setTimeout(() => {
-      const source = this.props.item.editor.getCurrentContent().getPlainText();
-      if (this.state.source !== source) {
-        const { id } = this.props.item;
-        const { previousId, parentId } = this.props;
-        const newItem: NewItem = {
-          id: id,
-          content: source,
-          metadata: {},
-          parent: parentId,
-          previous: previousId,
-        };
-        postChangedItems([newItem])
-          .then(() => this.setState({ source }));
-      }
-    }, 250);
+    this.submitTimer = setTimeout(this.submitChanged, 750);
   }
 
   dispatch(start: Path) {
