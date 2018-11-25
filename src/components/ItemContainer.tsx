@@ -187,7 +187,6 @@ export class ItemContainer extends React.Component<Props, State> {
       || editing !== undefined && isSubPathOf(path, editing.path)
       || item.editor !== nextProps.item.editor
       || start !== nextProps.start
-      || !path.equals(nextProps.path)
     );
   }
 
@@ -245,7 +244,7 @@ export class ItemContainer extends React.Component<Props, State> {
           <Line
             onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
             editor={ item.editor } isEditing={ isEditing }
-            edit={ (selection, callback) => edit({ path, selection }, callback) }
+            edit={ (selection, callback) => edit({ path: this.props.path, selection }, callback) }
             exit={ callback => edit(undefined, callback) }
             onEnter={ this.onEnter }
             navigateNext={ this.navigateNext } navigatePrev={ this.navigatePrev }
