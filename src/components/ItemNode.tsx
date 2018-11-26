@@ -9,6 +9,7 @@ import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
 import { deleteItem, postChangedItems } from "../api";
+import { EditorState } from "draft-js";
 import Timer = NodeJS.Timer;
 
 
@@ -117,23 +118,20 @@ export class ItemNode extends React.Component<Props, State> {
     );
   };
 
-
   private onEnter = (hasContent: boolean) => {
     // if content is empty and item is last item in siblings, indent it.
-    const { path, next, updateTree, edit } = this.props;
+    const { path, next, updateTree, edit, item } = this.props;
     const isLastItem = next.size < path.size;
     if (isLastItem && path.size > 1 && !hasContent) {
-      this.unIndent();
+      return this.unIndent();
     }
-    else {
-      const createPath = path.set(path.size - 1, path.last(-1) + 1);
-      updateTree(
-        tree => Item.insert(tree, [Item.create()], createPath),
-        () => edit({ path: createPath })
-      );
-    }
+    const noChildren = item.children.isEmpty();
+    const createPath = noChildren ? path.set(path.size - 1, path.last(-1) + 1) : path.push(0);
+    updateTree(
+      tree => Item.insert(tree, [Item.create()], createPath),
+      () => edit({ path: createPath })
+    );
   };
-
 
   swap = (direction: 'Prev' | 'Next') => {
     const { edit, next, prev, path, item, updateTree } = this.props;
@@ -178,18 +176,6 @@ export class ItemNode extends React.Component<Props, State> {
     }
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
-    const { editing, path, item, start } = this.props;
-    return (
-      item.expand !== nextProps.item.expand
-      || item.children !== nextProps.item.children
-      || nextProps.editing !== undefined && Path.isSubPathOf(nextProps.path, nextProps.editing.path)
-      || editing !== undefined && Path.isSubPathOf(path, editing.path)
-      || item.editor !== nextProps.item.editor
-      || start !== nextProps.start
-    );
-  }
-
   submitChanged = () => {
     const { item, parentId, previousId } = this.props;
     const newItem = UpdateItem.fromItem(item, parentId, previousId);
@@ -200,6 +186,19 @@ export class ItemNode extends React.Component<Props, State> {
         });
     }
   };
+
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+    const { editing, path, item, start, prev } = this.props;
+    return (
+      item.expand !== nextProps.item.expand
+      || item.children !== nextProps.item.children
+      || nextProps.editing !== undefined && Path.isSubPathOf(nextProps.path, nextProps.editing.path)
+      || editing !== undefined && Path.isSubPathOf(path, editing.path)
+      || !prev.equals(nextProps.prev)
+      || item.editor !== nextProps.item.editor
+      || start !== nextProps.start
+    );
+  }
 
   componentDidUpdate() {
     if (this.submitTimer !== null) {
@@ -228,8 +227,20 @@ export class ItemNode extends React.Component<Props, State> {
     });
   }
 
+  handleChange = (editor: EditorState, callback: () => void) => {
+    this.update({ ...this.props.item, editor }, callback);
+  };
+
+  lineEdit = (selection: Select, callback: () => void) => {
+    return this.props.edit({ path: this.props.path, selection }, callback);
+  };
+
+  exit = (callback: () => void) => {
+    this.props.edit(undefined, callback)
+  };
+
   render() {
-    const { item, path, editing, edit, start } = this.props;
+    const { item, path, editing, start } = this.props;
     if (start !== "started" && !start.equals(path)) {
       return this.dispatch(start);
     }
@@ -239,13 +250,13 @@ export class ItemNode extends React.Component<Props, State> {
     return (
       <div className='ItemContainer'>
         <div className="item-content">
-          { hasChild ? <Toggle toggle={ () => this.toggle() } isExpanded={ item.expand }/> : null }
+          { hasChild ? <Toggle toggle={ this.toggle } isExpanded={ item.expand }/> : null }
           <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild } path={ path }/>
           <Line
-            onChange={ (editor, callback) => this.update({ ...item, editor }, callback) }
+            onChange={ this.handleChange }
             editor={ item.editor } isEditing={ isEditing }
-            edit={ (selection, callback) => edit({ path: this.props.path, selection }, callback) }
-            exit={ callback => edit(undefined, callback) }
+            edit={ this.lineEdit }
+            exit={ this.exit }
             onEnter={ this.onEnter }
             navigateNext={ this.navigateNext } navigatePrev={ this.navigatePrev }
             indent={ this.indent } unIndent={ this.unIndent }
@@ -256,6 +267,5 @@ export class ItemNode extends React.Component<Props, State> {
       </div>
     );
   }
-
 }
 
