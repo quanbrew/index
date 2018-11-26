@@ -31,7 +31,7 @@ class App extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    const root = Item.create('');
+    const root = Item.create();
     this.state = { root, loading: true };
   }
 

@@ -12,8 +12,11 @@ interface State {
 }
 
 
-export class Toggle extends React.Component<Props, State> {
+export class Toggle extends React.PureComponent<Props, State> {
+  handleClick = () => {
+    this.props.toggle();
+  };
   render() {
-    return <a className="toggle" onClick={ this.props.toggle }>{ this.props.isExpanded ? ' - ' : ' + ' }</a>;
+    return <a className="toggle" onClick={ this.handleClick }>{ this.props.isExpanded ? ' - ' : ' + ' }</a>;
   }
 } 

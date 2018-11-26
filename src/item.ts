@@ -80,22 +80,22 @@ export namespace Item {
     }
   };
 
+  const randomNode = () => create(String(Math.random()));
 
-  export const randomTree = (threshold: number = 0.2, n: number = 19, level = 0): Item => {
-    const rnd1 = Math.random();
-    const source = String(Math.random() * 100);
-    let children = List();
-    if (rnd1 > threshold && level < 10) {
-      for (let i = 0; i < Math.random() * 100; i++) {
-        children = children.push(randomTree(threshold * 2, n, level + 1));
+  export const randomTree = (amount: number): Item => {
+    let root = randomNode();
+
+    while (amount > 1) {
+      if (Math.random() < 0.6) {
+        root = addChild(root, randomNode());
+      }
+      else {
+        const subAmount = Math.floor(amount * Math.random());
+        root = addChild(root, randomTree(subAmount));
+        amount -= subAmount;
       }
     }
-    return ({
-      id: uuid1(),
-      children: children,
-      editor: buildEditor(source),
-      expand: true,
-    })
+    return root;
   };
 
 

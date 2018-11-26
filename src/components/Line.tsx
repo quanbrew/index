@@ -148,7 +148,7 @@ function getPosition(source: string, node: Node, offset: number): Position {
 }
 
 
-export class Line extends React.Component<Props, State> {
+export class Line extends React.PureComponent<Props, State> {
   editorRef: React.RefObject<Editor>;
   documentRef: React.RefObject<HTMLDivElement>;
 
