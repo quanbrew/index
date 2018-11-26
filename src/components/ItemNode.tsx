@@ -29,7 +29,7 @@ interface Props {
 
 
 interface State {
-  loadChildren: boolean;
+  loading: boolean;
 }
 
 
@@ -39,7 +39,7 @@ export class ItemNode extends React.Component<Props, State> {
 
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
-    updateTree(tree => Item.mapLocation(tree, path, () => item), callback)
+    updateTree(tree => Item.modify(tree, path, () => item), callback)
   }
 
   private toggle = (setExpand?: boolean) => {
@@ -55,7 +55,7 @@ export class ItemNode extends React.Component<Props, State> {
     const sibling = prev.slice(0, path.size);
     let newIndex = 0;
     updateTree(
-      tree => Item.mapLocation(
+      tree => Item.modify(
         Item.remove(tree, path),
         sibling,
         prevItem => {
@@ -166,11 +166,11 @@ export class ItemNode extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.submitRecord = UpdateItem.fromItem(props.item, props.parentId, props.previousId);
-    this.state = { loadChildren: true };
+    this.state = { loading: true };
     if (!props.item.children.isEmpty() && props.item.expand) {
-      this.state = { loadChildren: false };
+      this.state = { loading: false };
       setTimeout(() => {
-        this.setState({ loadChildren: true });
+        this.setState({ loading: true });
         this.forceUpdate();
       }, 0);
     }
@@ -263,7 +263,7 @@ export class ItemNode extends React.Component<Props, State> {
             remove={ this.remove } toggle={ this.toggle } swap={ this.swap }
           />
         </div>
-        { this.state.loadChildren ? children : <p>loading...</p> }
+        { this.state.loading ? children : <p>loading...</p> }
       </div>
     );
   }

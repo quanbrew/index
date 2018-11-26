@@ -32,10 +32,10 @@ export class ItemList extends React.Component<Props, State> {
     if (editing !== this.state.editing) {
       let nextRoot = this.props.root;
       if (editing !== undefined) {
-        nextRoot = Item.mapLocation(
+        nextRoot = Item.modify(
           this.props.root,
           editing.path,
-          item => Item.applySelection(item, editing.selection)
+          item => Item.select(item, editing.selection)
         );
       }
       this.props.update(nextRoot, () => this.setState({ editing }, callback));

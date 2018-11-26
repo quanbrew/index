@@ -117,7 +117,7 @@ export namespace Item {
   };
 
 
-  export const mapLocation = (tree: Item, path: Path, mapper: (item: Item) => Item): Item => {
+  export const modify = (tree: Item, path: Path, mapper: (item: Item) => Item): Item => {
     const index = path.first(null);
     if (index === null) {
       return mapper(tree);
@@ -128,7 +128,7 @@ export namespace Item {
         console.error('unexpected index');
         return tree;
       }
-      const children = tree.children.set(index, mapLocation(child, path.rest(), mapper));
+      const children = tree.children.set(index, modify(child, path.rest(), mapper));
       return { ...tree, children }
     }
   };
@@ -170,7 +170,7 @@ export namespace Item {
   };
 
 
-  export function applySelection(item: Item, selection?: Select): Item {
+  export function select(item: Item, selection?: Select): Item {
     interface KeyAndOffset {
       key: string,
       offset: number
