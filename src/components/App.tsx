@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './App.css';
-import { createItem, findItemById, findItemByPath, Item, Path } from "../item";
+import { Item, Path } from "../item";
 import { ItemList } from "./ItemList";
 import { BrowserRouter as Router, Route, RouteComponentProps } from "react-router-dom";
 import { Switch } from "react-router";
@@ -31,7 +31,7 @@ class App extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    const root = createItem('');
+    const root = Item.create('');
     this.state = { root, loading: true };
   }
 
@@ -47,13 +47,13 @@ class App extends React.Component<Props, State> {
     const targetPathArray = location.state && location.state["targetPathArray"];
     if (targetPathArray !== undefined) {
       path = List(targetPathArray as Array<number>);
-      const item = findItemByPath(root, path);
+      const item = Item.findByPath(root, path);
       if (item === null || item.id !== id) {
         return <NotFound/>
       }
     }
     else {
-      const result = findItemById(root, id);
+      const result = Item.findById(root, id);
       if (result === null) {
         return <NotFound/>;
       }

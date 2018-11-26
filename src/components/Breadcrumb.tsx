@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { findItemByPath, Item, itemLinkLocation, Path } from "../item";
+import { Item, Path } from "../item";
 import { Link } from "react-router-dom";
 import "./Breadcrumb.css"
 
@@ -24,12 +24,12 @@ export class Breadcrumb extends React.PureComponent<Props, State> {
       paths.push(path.slice(0, i));
     }
     const list = paths.map((path, key) => {
-      const item = findItemByPath(root, path);
+      const item = Item.findByPath(root, path);
       if (item === null)
         throw Error("can't found item by path");
       return (
         <li key={ key } className="Breadcrumb-item">
-          <Link to={ itemLinkLocation(item.id, path) }>
+          <Link to={ Item.linkLocation(item.id, path) }>
             { item.editor.getCurrentContent().getPlainText() }
           </Link>
         </li>

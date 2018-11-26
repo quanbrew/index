@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { createItem, insert, isSubPathOf, Item, itemTail, mapLocation, Path, remove } from "../item";
-import './ItemContainer.css';
+import { Item, Path, UpdateItem } from "../item";
+import './ItemNode.css';
 import 'draft-js/dist/Draft.css';
 import { Bullet } from "./Bullet";
 import { Line } from "./Line";
@@ -8,7 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
-import { deleteItem, isSameNewItem, makeNewItemFromItem, NewItem, postChangedItems } from "../api";
+import { deleteItem, postChangedItems } from "../api";
 import Timer = NodeJS.Timer;
 
 
@@ -32,13 +32,13 @@ interface State {
 }
 
 
-export class ItemContainer extends React.Component<Props, State> {
+export class ItemNode extends React.Component<Props, State> {
   submitTimer: Timer | null = null;
-  submitRecord: NewItem;
+  submitRecord: UpdateItem;
 
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
-    updateTree(tree => mapLocation(tree, path, () => item), callback)
+    updateTree(tree => Item.mapLocation(tree, path, () => item), callback)
   }
 
   private toggle = (setExpand?: boolean) => {
@@ -54,8 +54,8 @@ export class ItemContainer extends React.Component<Props, State> {
     const sibling = prev.slice(0, path.size);
     let newIndex = 0;
     updateTree(
-      tree => mapLocation(
-        remove(tree, path),
+      tree => Item.mapLocation(
+        Item.remove(tree, path),
         sibling,
         prevItem => {
           newIndex = prevItem.children.size;
@@ -73,7 +73,7 @@ export class ItemContainer extends React.Component<Props, State> {
     const parent = path.pop();
     const next = parent.update(parent.size - 1, x => x + 1);
     updateTree(
-      tree => insert(remove(tree, path), [item], next),
+      tree => Item.insert(Item.remove(tree, path), [item], next),
       () => edit({ path: next })
     );
   };
@@ -84,7 +84,7 @@ export class ItemContainer extends React.Component<Props, State> {
     if (index === null || (skipChildrenCheck !== true && !item.children.isEmpty())) return;
     const focus = { column: -1, row: -1 };
     const editing: EditState = { path: prev, selection: { focus } };
-    updateTree(tree => remove(tree, path), () => edit(editing));
+    updateTree(tree => Item.remove(tree, path), () => edit(editing));
     deleteItem(this.props.item.id);
   };
 
@@ -101,14 +101,14 @@ export class ItemContainer extends React.Component<Props, State> {
     else if (prevItem !== undefined) {
       previousId = prevItem.id;
       if (prevItem.expand)
-        prevPath = itemTail(path.push(index - 1), prevItem);
+        prevPath = Item.tail(path.push(index - 1), prevItem);
       else
         prevPath = path.push(index - 1);
     }
     const nextPath = index < item.children.size - 1 ? path.push(index + 1) : next;
 
     return (
-      <ItemContainer
+      <ItemNode
         item={ currentItem } key={ currentItem.id } editing={ editing }
         path={ path.push(index) } prev={ prevPath } next={ nextPath } edit={ edit }
         updateTree={ updateTree } start="started"
@@ -128,7 +128,7 @@ export class ItemContainer extends React.Component<Props, State> {
     else {
       const createPath = path.set(path.size - 1, path.last(-1) + 1);
       updateTree(
-        tree => insert(tree, [createItem()], createPath),
+        tree => Item.insert(tree, [Item.create()], createPath),
         () => edit({ path: createPath })
       );
     }
@@ -145,7 +145,7 @@ export class ItemContainer extends React.Component<Props, State> {
     else
       return;
     updateTree(
-      tree => insert(remove(tree, path), [item], target),
+      tree => Item.insert(Item.remove(tree, path), [item], target),
       () => edit({ path: target })
     );
   };
@@ -167,7 +167,7 @@ export class ItemContainer extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.submitRecord = makeNewItemFromItem(props.item, props.parentId, props.previousId);
+    this.submitRecord = UpdateItem.fromItem(props.item, props.parentId, props.previousId);
     this.state = { loadChildren: true };
     if (!props.item.children.isEmpty() && props.item.expand) {
       this.state = { loadChildren: false };
@@ -183,8 +183,8 @@ export class ItemContainer extends React.Component<Props, State> {
     return (
       item.expand !== nextProps.item.expand
       || item.children !== nextProps.item.children
-      || nextProps.editing !== undefined && isSubPathOf(nextProps.path, nextProps.editing.path)
-      || editing !== undefined && isSubPathOf(path, editing.path)
+      || nextProps.editing !== undefined && Path.isSubPathOf(nextProps.path, nextProps.editing.path)
+      || editing !== undefined && Path.isSubPathOf(path, editing.path)
       || item.editor !== nextProps.item.editor
       || start !== nextProps.start
     );
@@ -192,8 +192,8 @@ export class ItemContainer extends React.Component<Props, State> {
 
   submitChanged = () => {
     const { item, parentId, previousId } = this.props;
-    const newItem = makeNewItemFromItem(item, parentId, previousId);
-    if (!isSameNewItem(this.submitRecord, newItem)) {
+    const newItem = UpdateItem.fromItem(item, parentId, previousId);
+    if (!UpdateItem.isSame(this.submitRecord, newItem)) {
       postChangedItems([newItem])
         .then(() => {
           this.submitRecord = newItem;
@@ -210,7 +210,7 @@ export class ItemContainer extends React.Component<Props, State> {
 
   dispatch(start: Path) {
     const { item, path, editing, edit, updateTree } = this.props;
-    if (!isSubPathOf(path, start)) {
+    if (!Path.isSubPathOf(path, start)) {
       return null;
     }
 
@@ -218,7 +218,7 @@ export class ItemContainer extends React.Component<Props, State> {
     return item.children.map((child, index) => {
       const childPath = path.push(index);
       return (
-        <ItemContainer
+        <ItemNode
           item={ child } key={ child.id } edit={ edit }
           updateTree={ updateTree } start={ start } editing={ editing }
           path={ childPath } prev={ emptyPath } next={ childPath }
