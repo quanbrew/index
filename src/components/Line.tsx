@@ -3,6 +3,7 @@ import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'dra
 import { Position, Select } from "../utils";
 import classNames from 'classnames';
 import "./Line.css";
+import { Item } from "../item";
 
 const ReactMarkdown = require('react-markdown');
 
@@ -152,12 +153,14 @@ function getPosition(source: string, node: Node, offset: number): Position {
 export class Line extends React.PureComponent<Props, State> {
   editorRef: React.RefObject<Editor>;
   documentRef: React.RefObject<HTMLDivElement>;
+  editor: EditorState | null;
 
   constructor(props: Props) {
     super(props);
     this.state = { release: true };
     this.documentRef = React.createRef();
     this.editorRef = React.createRef();
+    this.editor = null;
   }
 
   handleSelectMarkdown = (e: React.SyntheticEvent) => {
@@ -185,11 +188,24 @@ export class Line extends React.PureComponent<Props, State> {
       this.props.exit();
   };
 
-  getCurrentPosition(): Select | undefined {
-    const { editor } = this.props;
-    if (editor === null) {
-      throw Error("uninitiated editor")
+  getEditor(): EditorState {
+    const { editor, source } = this.props;
+
+    if (editor !== null) {
+      return editor;
+    } else {
+      if (this.editor === null || this.editor.getCurrentContent().getPlainText() !== source) {
+        const editor = Item.buildEditor(source);
+        this.editor = editor;
+        return editor;
+      } else {
+        return this.editor;
+      }
     }
+  }
+
+  getCurrentPosition(): Select | undefined {
+    const editor = this.getEditor();
     const selection = editor.getSelection();
     const column = selection.getFocusOffset();
     const row = -1;
@@ -267,10 +283,7 @@ export class Line extends React.PureComponent<Props, State> {
 
 
   renderEditor() {
-    let { editor } = this.props;
-    if (editor === null) {
-      throw Error("uninitiated editor")
-    }
+    const editor = this.getEditor();
     return (
       <div>
         <Editor
