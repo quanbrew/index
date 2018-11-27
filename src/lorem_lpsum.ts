@@ -1,5 +1,5 @@
 // Markdown Lorem Ipsum
-// Thanks for 张大锤
+// Thanks to 张大锤
 
 import * as _ from "lodash";
 
