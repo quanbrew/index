@@ -2,6 +2,7 @@ import { List } from "immutable";
 import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-js";
 import { Select } from "./utils";
 import { LocationDescriptorObject } from "history";
+import { paragraph } from "./LoremIpsum";
 
 const uuid1 = require('uuid/v1');
 
@@ -80,7 +81,7 @@ export namespace Item {
     }
   };
 
-  const randomNode = () => create(String(Math.random()));
+  const randomNode = () => create(paragraph());
 
   export const randomTree = (amount: number): Item => {
     let root = randomNode();
