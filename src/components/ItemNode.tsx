@@ -168,9 +168,10 @@ export class ItemNode extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.submitRecord = UpdateItem.fromItem(props.item, props.parentId, props.previousId);
+    const { item, parentId, previousId, path } = props;
+    this.submitRecord = UpdateItem.fromItem(item, parentId, previousId);
     let loading = true;
-    if (props.path.reduce((a, b) => a + b, 0) < 4) {
+    if (path.size < 3 && path.reduce((a, b) => a + b, 0) < 4) {
       loading = false;
     }
     this.state = { loading };
