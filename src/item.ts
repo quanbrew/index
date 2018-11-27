@@ -2,7 +2,7 @@ import { List } from "immutable";
 import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-js";
 import { Select } from "./utils";
 import { LocationDescriptorObject } from "history";
-import { paragraph } from "./LoremIpsum";
+import { paragraph } from "./lorem_lpsum";
 
 const uuid1 = require('uuid/v1');
 
