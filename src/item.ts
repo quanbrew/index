@@ -137,13 +137,11 @@ export namespace Item {
   export const insert = (tree: Item, items: Array<Item>, path: Path, remove: number = 0): Item => {
     const index = path.first(null);
     if (index === null) {
-      console.error('unexpected path');
-      return tree;
+      throw Error('unexpected path');
     }
     else if (path.size === 1) {
       if (tree.children.size < index) {
-        console.error('unexpected index');
-        return tree;
+        throw Error('unexpected index');
       }
       else {
         const children = tree.children.splice(index, remove, ...items);
@@ -153,8 +151,8 @@ export namespace Item {
     else {
       const next = tree.children.get(index, null);
       if (next === null) {
-        console.error('unexpected path', tree.children.toJS(), path.toJS());
-        return tree;
+        console.error(tree.children.toJS(), path.toJS());
+        throw Error('unexpected path');
       }
       const children = tree.children.set(index, insert(next, items, path.rest(), remove));
       return { ...tree, children };
