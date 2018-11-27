@@ -13,9 +13,9 @@ const em = (text: string) => `*${text}*`;
 
 export const word = (): string => {
   return _.sample([
-    "血統主義", "非洲人", "ケモミミ", " Flip", " Flappers", "词典", "亚历山大大帝", "生世",
+    "血統主義", "非洲人", "ケモミミ", "词典", "亚历山大大帝", "生世",
     "意樣法強主出約以車不灣", "四体不勤", "五谷不分", "機率", "下午安", "光盘", " Handpicked Rust updates",
-    " production", " events", " SwissTable", "类型", " Lorem", " Ipsum", "ココナ", "パピカ", "ヤヤカ",
+    " production", " events", " SwissTable", "类型", " Lorem", " Ipsum",
     "嗷", "一个狗", "你国当代", "你球", " Have", " a", " good", " day", "OH", " lambda", "λ", "魔幻现实",
     "赛博朋克", "完了", "Moe", "废萌", "存在", "俄狄浦斯", "一个狗", "不要脸", "毛", "高速率", "挥舞双前手",
     "注视万丈光芒", "在天国之门", "的", "黑暗里闪耀", "时间枯萎", "伟大", "生活", "老张", "老王", " epic",
