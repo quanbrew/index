@@ -10,8 +10,8 @@ import { Toggle } from "./Toggle";
 import { List } from "immutable";
 import { deleteItem, IS_LOCAL, postChangedItems } from "../api";
 import { EditorState } from "draft-js";
+import Waypoint from 'react-waypoint';
 import Timer = NodeJS.Timer;
-
 
 interface Props {
   item: Item,
@@ -36,6 +36,7 @@ interface State {
 export class ItemNode extends React.Component<Props, State> {
   submitTimer: Timer | null = null;
   submitRecord: UpdateItem;
+  selfRef: React.RefObject<HTMLDivElement>;
 
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
@@ -166,14 +167,12 @@ export class ItemNode extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.submitRecord = UpdateItem.fromItem(props.item, props.parentId, props.previousId);
-    this.state = { loading: true };
-    if (!props.item.children.isEmpty() && props.item.expand) {
-      this.state = { loading: false };
-      setTimeout(() => {
-        this.setState({ loading: true });
-        this.forceUpdate();
-      }, 0);
+    let loading = true;
+    if (props.path.reduce((a, b) => a + b, 0) < 4) {
+      loading = false;
     }
+    this.state = { loading };
+    this.selfRef = React.createRef();
   }
 
   submitChanged = () => {
@@ -237,9 +236,28 @@ export class ItemNode extends React.Component<Props, State> {
     return this.props.edit({ path: this.props.path, selection }, callback);
   };
 
+  startRenderChildren = () => {
+    this.setState({ loading: false });
+    this.forceUpdate();
+  };
+
   exit = (callback: () => void) => {
     this.props.edit(undefined, callback)
   };
+
+  renderChildren() {
+    const { item } = this.props;
+    return item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
+  }
+
+  renderLoading() {
+    return (
+      <div className="item-loading">
+        <Waypoint onEnter={ this.startRenderChildren } topOffset={ 0 } bottomOffset={ -1500 }/>
+        <p>loading...</p>
+      </div>
+    )
+  }
 
   render() {
     const { item, path, editing, start } = this.props;
@@ -247,10 +265,9 @@ export class ItemNode extends React.Component<Props, State> {
       return this.dispatch(start);
     }
     const isEditing = editing !== undefined && path.equals(editing.path);
-    const children = item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
     const hasChild = !item.children.isEmpty();
     return (
-      <div className='ItemContainer'>
+      <div className='ItemContainer' ref={ this.selfRef }>
         <div className="item-content">
           { hasChild ? <Toggle toggle={ this.toggle } isExpanded={ item.expand }/> : null }
           <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild } path={ path }/>
@@ -265,7 +282,7 @@ export class ItemNode extends React.Component<Props, State> {
             remove={ this.remove } toggle={ this.toggle } swap={ this.swap }
           />
         </div>
-        { this.state.loading ? children : <p>loading...</p> }
+        { this.state.loading ? this.renderLoading() : this.renderChildren() }
       </div>
     );
   }

@@ -26,7 +26,7 @@ export const scrollInto = (element: Element) => {
 };
 
 
-function isElementInViewport(element: Element) {
+export function isElementInViewport(element: Element) {
   const rect = element.getBoundingClientRect();
   const rootElement = document.documentElement as HTMLElement;
   return (
