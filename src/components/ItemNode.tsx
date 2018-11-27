@@ -87,7 +87,9 @@ export class ItemNode extends React.Component<Props, State> {
     const focus = { column: -1, row: -1 };
     const editing: EditState = { path: prev, selection: { focus } };
     updateTree(tree => Item.remove(tree, path), () => edit(editing));
-    deleteItem(this.props.item.id);
+    if (!IS_LOCAL) {
+      deleteItem(this.props.item.id).catch(console.warn);
+    }
   };
 
   private displayChild = (currentItem: Item, index: number) => {
