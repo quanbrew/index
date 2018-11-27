@@ -2,6 +2,7 @@ import { Item, Record, UpdateItem } from "./item";
 
 const HOST: string = process.env.HOST as string;
 
+export const IS_LOCAL = HOST === undefined || HOST === '';
 
 export const getAllItem = (): Promise<Item> => fetch(HOST.concat("/item/"))
   .then(response => response.json())
@@ -18,8 +19,6 @@ export const postChangedItems = (items: Array<UpdateItem>) => {
     },
   );
 };
-
-
 
 
 export const deleteItem = (id: string) => {

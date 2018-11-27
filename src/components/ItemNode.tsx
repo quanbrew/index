@@ -8,7 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
-import { deleteItem, postChangedItems } from "../api";
+import { deleteItem, IS_LOCAL, postChangedItems } from "../api";
 import { EditorState } from "draft-js";
 import Timer = NodeJS.Timer;
 
@@ -201,10 +201,12 @@ export class ItemNode extends React.Component<Props, State> {
   }
 
   componentDidUpdate() {
-    if (this.submitTimer !== null) {
-      clearTimeout(this.submitTimer);
+    if (!IS_LOCAL) {
+      if (this.submitTimer !== null) {
+        clearTimeout(this.submitTimer);
+      }
+      this.submitTimer = setTimeout(this.submitChanged, 750);
     }
-    this.submitTimer = setTimeout(this.submitChanged, 750);
   }
 
   dispatch(start: Path) {

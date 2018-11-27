@@ -7,7 +7,8 @@ import { Switch } from "react-router";
 import { NotFound } from "./NotFound";
 import ScrollToTop from "./ScrollToTop";
 import { List } from "immutable";
-import { getAllItem } from "../api";
+import { getAllItem, IS_LOCAL } from "../api";
+import randomTree = Item.randomTree;
 
 
 interface Props {
@@ -23,7 +24,16 @@ class App extends React.Component<Props, State> {
   update = (root: Item, callback?: () => void) => this.setState({ root }, callback);
 
   getTreeFromServer = () => {
-    getAllItem()
+    let future: Promise<Item>;
+    if (IS_LOCAL) {
+      future = new Promise((resolve) => {
+        resolve(randomTree(1000));
+      });
+    }
+    else {
+      future = getAllItem();
+    }
+    future
       .then(root => {
         this.setState({ root, loading: false });
       });
