@@ -26,6 +26,11 @@ export namespace Item {
   });
 
 
+  export const counter = (item: Item): number => {
+    return 1 + item.children.map(counter).reduce((a, b) => a + b, 0);
+  };
+
+
   export const addChild = (parent: Item, child: Item, position?: number): Item => {
     const children = position === undefined ? parent.children.push(child) : parent.children.insert(position, child);
     return { ...parent, children }
