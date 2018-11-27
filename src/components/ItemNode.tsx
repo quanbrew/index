@@ -92,35 +92,6 @@ export class ItemNode extends React.Component<Props, State> {
     }
   };
 
-  private displayChild = (currentItem: Item, index: number) => {
-    const { path, item, prev, next, updateTree, edit, editing } = this.props;
-
-    let prevPath = prev;
-    let previousId = null;
-    const prevItem = item.children.get(index - 1);
-
-    if (index === 0) {
-      prevPath = path; // move to parent
-    }
-    else if (prevItem !== undefined) {
-      previousId = prevItem.id;
-      if (prevItem.expand)
-        prevPath = Item.tail(path.push(index - 1), prevItem);
-      else
-        prevPath = path.push(index - 1);
-    }
-    const nextPath = index < item.children.size - 1 ? path.push(index + 1) : next;
-
-    return (
-      <ItemNode
-        item={ currentItem } key={ currentItem.id } editing={ editing }
-        path={ path.push(index) } prev={ prevPath } next={ nextPath } edit={ edit }
-        updateTree={ updateTree } start="started"
-        parentId={ item.id } previousId={ previousId }
-      />
-    );
-  };
-
   private onEnter = (hasContent: boolean) => {
     // if content is empty and item is last item in siblings, indent it.
     const { path, next, updateTree, edit, item } = this.props;
@@ -250,8 +221,35 @@ export class ItemNode extends React.Component<Props, State> {
   };
 
   renderChildren() {
-    const { item } = this.props;
-    return item.expand ? (<div className='children'>{ item.children.map(this.displayChild) }</div>) : null;
+    const { path, item, next, updateTree, edit, editing } = this.props;
+    let items = [];
+    let index = 0;
+    let prevItem: Item | null = null;
+    let prevPath = path; // move to parent
+    for (let child of item.children) {
+      let previousId = null;
+
+      if (index !== 0 && prevItem !== null) {
+        previousId = prevItem.id;
+        if (prevItem.expand) {
+          prevPath = Item.tail(prevPath, prevItem);
+        }
+      }
+      const nextPath = index < item.children.size - 1 ? path.push(index + 1) : next;
+      const thisPath = path.push(index);
+      items.push(
+        <ItemNode
+          item={ child } key={ child.id } editing={ editing }
+          path={ thisPath } prev={ prevPath } next={ nextPath } edit={ edit }
+          updateTree={ updateTree } start="started"
+          parentId={ item.id } previousId={ previousId }
+        />
+      );
+      index += 1;
+      prevItem = child;
+      prevPath = thisPath;
+    }
+    return <div className='children'>{ items }</div>;
   }
 
   renderLoading() {
@@ -286,7 +284,7 @@ export class ItemNode extends React.Component<Props, State> {
             remove={ this.remove } toggle={ this.toggle } swap={ this.swap }
           />
         </div>
-        { this.state.loading ? this.renderLoading() : this.renderChildren() }
+        { item.expand ? (this.state.loading ? this.renderLoading() : this.renderChildren()) : null }
       </div>
     );
   }
