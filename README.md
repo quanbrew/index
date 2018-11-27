@@ -1,6 +1,8 @@
 iooo
 ==========
 
+[![Build Status](https://travis-ci.com/quanbrew/iooo.svg?branch=master)](https://travis-ci.com/quanbrew/iooo)
+
 Let iooo organize your knowledge
 
 
