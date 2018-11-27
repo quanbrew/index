@@ -30,7 +30,7 @@ export class Breadcrumb extends React.PureComponent<Props, State> {
       return (
         <li key={ key } className="Breadcrumb-item">
           <Link to={ Item.linkLocation(item.id, path) }>
-            { item.editor.getCurrentContent().getPlainText() }
+            { item.source }
           </Link>
         </li>
       );

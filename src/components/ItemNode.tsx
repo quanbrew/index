@@ -229,7 +229,8 @@ export class ItemNode extends React.Component<Props, State> {
   }
 
   handleChange = (editor: EditorState, callback: () => void) => {
-    this.update({ ...this.props.item, editor }, callback);
+    const source = editor.getCurrentContent().getPlainText();
+    this.update({ ...this.props.item, editor, source }, callback);
   };
 
   lineEdit = (selection: Select, callback: () => void) => {
@@ -273,7 +274,7 @@ export class ItemNode extends React.Component<Props, State> {
           <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild } path={ path }/>
           <Line
             onChange={ this.handleChange }
-            editor={ item.editor } isEditing={ isEditing }
+            editor={ item.editor } isEditing={ isEditing } source={ item.source }
             edit={ this.lineEdit }
             exit={ this.exit }
             onEnter={ this.onEnter }

@@ -3,6 +3,7 @@ import { ContentBlock, ContentState, EditorState, SelectionState } from "draft-j
 import { Select } from "./utils";
 import { LocationDescriptorObject } from "history";
 import { paragraph } from "./lorem_lpsum";
+import { EditState } from "./components/ItemList";
 
 const uuid1 = require('uuid/v1');
 
@@ -10,7 +11,8 @@ export interface Item {
   id: string;
   children: List<Item>;
   expand: boolean;
-  editor: EditorState;
+  editor: EditorState | null;
+  source: string;
 }
 
 
@@ -18,8 +20,9 @@ export namespace Item {
   export const create = (source: string = ''): Item => ({
     id: uuid1(),
     children: List(),
-    editor: buildEditor(source),
+    editor: null,
     expand: true,
+    source,
   });
 
 
@@ -168,14 +171,16 @@ export namespace Item {
     else return tail(path.push(item.children.size - 1), last);
   };
 
-
-  export function select(item: Item, selection?: Select): Item {
+  function selectItem(item: Item, selection?: Select): Item {
     interface KeyAndOffset {
       key: string,
       offset: number
     }
 
     function getKeyAndOffset(row: number, column: number): KeyAndOffset {
+      if (item.editor === null) {
+        throw Error("editor should be initialed")
+      }
       const blockList = item.editor.getCurrentContent().getBlocksAsArray();
       const blockListLen = blockList.length;
       let index = row;
@@ -191,6 +196,9 @@ export namespace Item {
       return { key, offset }
     }
 
+    if (item.editor === null) {
+      throw Error("editor should be initialed")
+    }
 
     let selectionState;
     if (selection !== undefined) {
@@ -217,6 +225,14 @@ export namespace Item {
     return { ...item, editor }
   }
 
+  export function select(root: Item, editing: EditState): Item {
+    return modify(root, editing.path, item => {
+      if (item.editor === null) {
+        item.editor = buildEditor(item.source);
+      }
+      return selectItem(item, editing.selection);
+    });
+  }
 
   export const itemsInPath = (path: Path, item: Item): List<Item> => {
     const items = List().push(item);
@@ -294,8 +310,9 @@ export namespace Record {
       {
         id: record.id,
         children,
-        editor: Item.buildEditor(record.content),
+        editor: null,
         expand: record.expand,
+        source: record.content,
       }
     )
   };
@@ -342,7 +359,7 @@ export namespace UpdateItem {
     return (
       {
         id,
-        content: item.editor.getCurrentContent().getPlainText(),
+        content: item.source,
         parent, previous,
         metadata: {}, expand,
       }

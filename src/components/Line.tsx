@@ -8,7 +8,8 @@ const ReactMarkdown = require('react-markdown');
 
 
 interface Props {
-  editor: EditorState;
+  editor: EditorState | null;
+  source: string;
   onChange: (editor: EditorState, callback?: () => void) => void;
   isEditing: boolean;
   edit: (selection?: Select, callback?: () => void) => void;
@@ -160,11 +161,10 @@ export class Line extends React.PureComponent<Props, State> {
   }
 
   handleSelectMarkdown = (e: React.SyntheticEvent) => {
-    const { editor, edit, isEditing } = this.props;
+    const { source, edit, isEditing } = this.props;
     e.stopPropagation();
     if (!isEditing) {
       e.preventDefault();
-      const source = editor.getCurrentContent().getPlainText();
       const selection = getSelection();
       const focus = getPosition(source, selection.focusNode, selection.focusOffset);
       const anchor = getPosition(source, selection.anchorNode, selection.anchorOffset);
@@ -173,7 +173,8 @@ export class Line extends React.PureComponent<Props, State> {
   };
 
   hasContent(): boolean {
-    return this.props.editor.getCurrentContent().hasText()
+    const { editor } = this.props;
+    return editor !== null && editor.getCurrentContent().hasText()
   }
 
   handleChange = (editor: EditorState) => {
@@ -186,6 +187,9 @@ export class Line extends React.PureComponent<Props, State> {
 
   getCurrentPosition(): Select | undefined {
     const { editor } = this.props;
+    if (editor === null) {
+      throw Error("uninitiated editor")
+    }
     const selection = editor.getSelection();
     const column = selection.getFocusOffset();
     const row = -1;
@@ -264,6 +268,9 @@ export class Line extends React.PureComponent<Props, State> {
 
   renderEditor() {
     let { editor } = this.props;
+    if (editor === null) {
+      throw Error("uninitiated editor")
+    }
     return (
       <div>
         <Editor
@@ -302,7 +309,7 @@ export class Line extends React.PureComponent<Props, State> {
           rawSourcePos
           containerTagName="span"
           unwrapDisallowed
-          source={ this.props.editor.getCurrentContent().getPlainText() }
+          source={ this.props.source }
           renderers={ { text: Text, link: Link } }
           allowedTypes={ allowedTypes }
         />
