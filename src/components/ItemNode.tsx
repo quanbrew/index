@@ -13,6 +13,10 @@ import { EditorState } from "draft-js";
 import Waypoint from 'react-waypoint';
 import Timer = NodeJS.Timer;
 
+
+let itemRenderOrderCounter = 0;
+
+
 interface Props {
   item: Item,
   path: Path;
@@ -139,12 +143,12 @@ export class ItemNode extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    const { item, parentId, previousId, path } = props;
+    const { item, parentId, previousId } = props;
     this.submitRecord = UpdateItem.fromItem(item, parentId, previousId);
-    let loading = true;
-    if (path.size < 3 && path.reduce((a, b) => a + b, 0) < 4) {
-      loading = false;
-    }
+
+    // early render the first 256 items, lazy render the rest items.
+    let loading = itemRenderOrderCounter > 256;
+    itemRenderOrderCounter += 1;
     this.state = { loading };
     this.selfRef = React.createRef();
   }
@@ -162,6 +166,10 @@ export class ItemNode extends React.Component<Props, State> {
 
   shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
     const { editing, path, item, start, prev } = this.props;
+    if (start !== nextProps.start) {
+      itemRenderOrderCounter = 0;
+      return true;
+    }
     return (
       item.expand !== nextProps.item.expand
       || item.children !== nextProps.item.children
