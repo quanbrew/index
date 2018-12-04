@@ -12,7 +12,7 @@
     "lodash": "^4.17.11",
     "react": "^16.6.3",
     "react-dom": "^16.6.3",
-    "react-markdown": "^4.0.3",
+    "react-markdown": "^4.0.4",
     "react-router": "^4.3.1",
     "react-router-dom": "^4.3.1",
     "react-waypoint": "^8.1.0",
@@ -25,13 +25,13 @@
   "devDependencies": {
     "@types/classnames": "^2.2.6",
     "@types/draft-js": "^0.10.25",
-    "@types/node": "^10.12.10",
-    "@types/react": "^16.7.7",
-    "@types/react-dom": "^16.0.10",
+    "@types/node": "^10.12.12",
+    "@types/react": "^16.7.13",
+    "@types/react-dom": "^16.0.11",
     "@types/react-router": "^4.4.1",
     "@types/react-router-dom": "^4.3.1",
     "parcel-bundler": "^1.10.3",
     "tslint": "^5.11.0",
-    "typescript": "^3.1.6"
+    "typescript": "^3.2.1"
   }
 }
