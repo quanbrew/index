@@ -151,15 +151,15 @@ function getPosition(source: string, node: Node, offset: number): Position {
 
 
 export class Line extends React.PureComponent<Props, State> {
-  editorRef: React.RefObject<Editor>;
-  documentRef: React.RefObject<HTMLDivElement>;
+  // editorRef: React.RefObject<Editor>;
+  // documentRef: React.RefObject<HTMLDivElement>;
   editor: EditorState | null;
 
   constructor(props: Props) {
     super(props);
     this.state = { release: true };
-    this.documentRef = React.createRef();
-    this.editorRef = React.createRef();
+    // this.documentRef = React.createRef();
+    // this.editorRef = React.createRef();
     this.editor = null;
   }
 
@@ -289,7 +289,7 @@ export class Line extends React.PureComponent<Props, State> {
         <Editor
           editorState={ editor }
           onBlur={ this.onBlur }
-          ref={ this.editorRef }
+          // ref={ this.editorRef }
           onChange={ this.handleChange }
           onTab={ this.onTab }
           handleReturn={ this.handleReturn }
@@ -310,7 +310,7 @@ export class Line extends React.PureComponent<Props, State> {
 
     return (
       <div
-        ref={ this.documentRef }
+        // ref={ this.documentRef }
         className="document"
         contentEditable
         spellCheck={ false }
