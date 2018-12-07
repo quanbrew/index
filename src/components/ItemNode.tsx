@@ -36,7 +36,6 @@ interface State {
 export class ItemNode extends React.Component<Props, State> {
   submitTimer: Timer | null = null;
   submitRecord: UpdateItem;
-  selfRef: React.RefObject<HTMLDivElement>;
 
   private update(item: Item, callback?: () => void) {
     const { updateTree, path } = this.props;
@@ -143,7 +142,6 @@ export class ItemNode extends React.Component<Props, State> {
     this.submitRecord = UpdateItem.fromItem(item, parentId, previousId);
     let loading = false;
     this.state = { loading };
-    this.selfRef = React.createRef();
   }
 
   submitChanged = () => {
@@ -260,7 +258,7 @@ export class ItemNode extends React.Component<Props, State> {
     const isEditing = editing !== undefined && path.equals(editing.path);
     const hasChild = !item.children.isEmpty();
     return (
-      <div className='ItemContainer' ref={ this.selfRef }>
+      <div className='ItemContainer'>
         <div className="item-content">
           { hasChild ? <Toggle toggle={ this.toggle } isExpanded={ item.expand }/> : null }
           <Bullet id={ item.id } expand={ item.expand } hasChild={ hasChild } path={ path }/>
