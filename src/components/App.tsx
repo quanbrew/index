@@ -27,7 +27,7 @@ class App extends React.Component<Props, State> {
     let future: Promise<Item>;
     if (IS_LOCAL) {
       future = new Promise((resolve) => {
-        resolve(randomTree(1000));
+        resolve(randomTree(100));
       });
     }
     else {

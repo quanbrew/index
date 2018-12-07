@@ -10,11 +10,7 @@ import { Toggle } from "./Toggle";
 import { List } from "immutable";
 import { deleteItem, IS_LOCAL, postChangedItems } from "../api";
 import { EditorState } from "draft-js";
-import Waypoint from 'react-waypoint';
 import Timer = NodeJS.Timer;
-
-
-let itemRenderOrderCounter = 0;
 
 
 interface Props {
@@ -145,10 +141,7 @@ export class ItemNode extends React.Component<Props, State> {
     super(props);
     const { item, parentId, previousId } = props;
     this.submitRecord = UpdateItem.fromItem(item, parentId, previousId);
-
-    // early render the first 256 items, lazy render the rest items.
-    let loading = itemRenderOrderCounter > 256;
-    itemRenderOrderCounter += 1;
+    let loading = false;
     this.state = { loading };
     this.selfRef = React.createRef();
   }
@@ -166,10 +159,6 @@ export class ItemNode extends React.Component<Props, State> {
 
   shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
     const { editing, path, item, start, prev } = this.props;
-    if (start !== nextProps.start) {
-      itemRenderOrderCounter = 0;
-      return true;
-    }
     return (
       item.expand !== nextProps.item.expand
       || item.children !== nextProps.item.children
@@ -219,11 +208,6 @@ export class ItemNode extends React.Component<Props, State> {
     return this.props.edit({ path: this.props.path, selection }, callback);
   };
 
-  startRenderChildren = () => {
-    this.setState({ loading: false });
-    this.forceUpdate();
-  };
-
   exit = (callback: () => void) => {
     this.props.edit(undefined, callback)
   };
@@ -263,7 +247,6 @@ export class ItemNode extends React.Component<Props, State> {
   renderLoading() {
     return (
       <div className="item-loading">
-        <Waypoint onEnter={ this.startRenderChildren } topOffset={ 0 } bottomOffset={ -1500 }/>
         <p>loading...</p>
       </div>
     )
