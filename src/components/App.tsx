@@ -74,8 +74,9 @@ class App extends React.Component<Props, State> {
 
   renderItem = (path?: Path) => {
     const item = this.state.root;
-    if (path === undefined)
+    if (path === undefined) {
       path = List();
+    }
     return (
       <ItemList
         key={ item.id }

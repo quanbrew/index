@@ -70,7 +70,9 @@ export class ItemNode extends React.Component<Props, State> {
 
   private unIndent = () => {
     const { updateTree, path, item, edit } = this.props;
-    if (path.size < 2) return;
+    if (path.size < 2) {
+      return;
+    }
     const parent = path.pop();
     const next = parent.update(parent.size - 1, x => x + 1);
     updateTree(
@@ -98,10 +100,15 @@ export class ItemNode extends React.Component<Props, State> {
     if (isLastItem && path.size > 1 && !hasContent) {
       return this.unIndent();
     }
-    const noChildren = item.children.isEmpty();
-    const createPath = noChildren ? path.set(path.size - 1, path.last(-1) + 1) : path.push(0);
+    let items = [Item.create()];
+    let createPath: Path;
+    if (item.children.isEmpty()) {
+      createPath = path.set(path.size - 1, path.last(-1) + 1);
+    } else {
+      createPath = path.push(0);
+    }
     updateTree(
-      tree => Item.insert(tree, [Item.create()], createPath),
+      tree => Item.insert(tree, items, createPath),
       () => edit({ path: createPath })
     );
   };
@@ -109,12 +116,13 @@ export class ItemNode extends React.Component<Props, State> {
   swap = (direction: 'Prev' | 'Next') => {
     const { edit, next, prev, path, item, updateTree } = this.props;
     let target: Path;
-    if (direction === 'Prev' && path.last(0) !== 0)
+    if (direction === 'Prev' && path.last(0) !== 0) {
       target = prev;
-    else if (direction === 'Next' && path.size === next.size)
+    } else if (direction === 'Next' && path.size === next.size) {
       target = next;
-    else
+    } else {
       return;
+    }
     updateTree(
       tree => Item.insert(Item.remove(tree, path), [item], target),
       () => edit({ path: target })
@@ -123,11 +131,13 @@ export class ItemNode extends React.Component<Props, State> {
 
   navigateNext = (selection?: Select) => {
     const { edit, next, item, path } = this.props;
-    if (item.children.size !== 0 && item.expand)
+    if (item.children.size !== 0 && item.expand) {
       edit({ path: path.push(0), selection }); // enter next level
-    else if (!path.isEmpty() && next.isEmpty()) return;
+    } else if (!path.isEmpty() && next.isEmpty()) {
+      return;
+    }
     else {
-      edit({ path: next, selection })
+      edit({ path: next, selection });
     }
   };
 

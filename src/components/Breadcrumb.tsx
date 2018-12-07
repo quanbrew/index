@@ -30,8 +30,9 @@ export class Breadcrumb extends React.PureComponent<Props, State> {
 
   item = (path: Path, key: number) => {
     const item = Item.findByPath(this.props.root, path);
-    if (item === null)
+    if (item === null) {
       throw Error("can't found item by path");
+    }
     return (
       <li key={ key } className="Breadcrumb-item">
         <Link to={ Item.linkLocation(item.id, path) }>

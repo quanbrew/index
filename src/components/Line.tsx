@@ -36,8 +36,9 @@ const lineNumberToOffset = (source: string, lineNumber: number): number => {
   let position = 0;
   for (let i = 0; i < lineNumber; i++) {
     const result = source.indexOf('\n', position);
-    if (result === -1)
+    if (result === -1) {
       return position;
+    }
     position = result + 1;
   }
   return position;
@@ -65,8 +66,9 @@ const sourcePosition = (source: string, element: HTMLElement): SourceRange => {
   }
   // 1 base [start, end)
   const result = /(\d+):(\d+)-(\d+):(\d+)/.exec(value);
-  if (result === null)
+  if (result === null) {
     throw Error('can\'t parse source position');
+  }
   // -1 for 0 base
   const startRow = parseInt(result[1]) - 1;
   const startColumn = parseInt(result[2]) - 1;
@@ -184,8 +186,9 @@ export class Line extends React.PureComponent<Props, State> {
     this.props.onChange(editor)
   };
   onBlur = () => {
-    if (document.hasFocus())
+    if (document.hasFocus()) {
       this.props.exit();
+    }
   };
 
   getEditor(): EditorState {
@@ -248,7 +251,9 @@ export class Line extends React.PureComponent<Props, State> {
     const DOT = 190;
     switch (e.keyCode) {
       case DOT:
-        if (e.metaKey) return 'list-toggle';
+        if (e.metaKey) {
+          return 'list-toggle';
+        }
         break;
     }
     return getDefaultKeyBinding(e);
