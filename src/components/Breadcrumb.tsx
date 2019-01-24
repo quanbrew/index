@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import "./Breadcrumb.css"
 
 const ReactMarkdown = require("react-markdown");
-
+const removeMd = require('remove-markdown');
 
 interface Props {
   root: Item;
@@ -18,7 +18,7 @@ interface State {
 
 export class Breadcrumb extends React.PureComponent<Props, State> {
   static source(item: Item) {
-    const source = item.source;
+    const source = removeMd(item.source);
     const max = 24;
     if (source.length <= max) {
       return source;
