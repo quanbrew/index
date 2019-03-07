@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { DraftHandleValue, Editor, EditorState, getDefaultKeyBinding } from 'draft-js';
 import { Position, Select } from "../utils";
-import classNames from 'classnames';
 import "./Line.css";
 import { Item } from "../item";
 
@@ -153,15 +152,11 @@ function getPosition(source: string, node: Node, offset: number): Position {
 
 
 export class Line extends React.PureComponent<Props, State> {
-  // editorRef: React.RefObject<Editor>;
-  // documentRef: React.RefObject<HTMLDivElement>;
   editor: EditorState | null;
 
   constructor(props: Props) {
     super(props);
     this.state = { release: true };
-    // this.documentRef = React.createRef();
-    // this.editorRef = React.createRef();
     this.editor = null;
   }
 
@@ -315,7 +310,6 @@ export class Line extends React.PureComponent<Props, State> {
 
     return (
       <div
-        // ref={ this.documentRef }
         className="document"
         contentEditable
         spellCheck={ false }
@@ -337,8 +331,10 @@ export class Line extends React.PureComponent<Props, State> {
 
   render() {
     const { isEditing } = this.props;
-
-    const className = classNames({ editing: isEditing });
+    let className = '';
+    if (isEditing) {
+      className = 'editing';
+    }
 
     return (
       <div className={ className }>

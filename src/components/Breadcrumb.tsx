@@ -3,7 +3,6 @@ import { Item, Path } from "../item";
 import { Link } from "react-router-dom";
 import "./Breadcrumb.css"
 
-const ReactMarkdown = require("react-markdown");
 const removeMd = require('remove-markdown');
 
 interface Props {
@@ -35,9 +34,7 @@ export class Breadcrumb extends React.PureComponent<Props, State> {
     }
     return (
       <li key={ key } className="Breadcrumb-item">
-        <Link to={ Item.linkLocation(item.id, path) }>
-          <ReactMarkdown allowedTypes={ ['text'] } unwrapDisallowed source={ Breadcrumb.source(item) }/>
-        </Link>
+        <Link to={ Item.linkLocation(item.id, path) }>{ Breadcrumb.source(item) }</Link>
       </li>
     );
   };

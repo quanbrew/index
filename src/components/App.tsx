@@ -7,7 +7,7 @@ import { Switch } from "react-router";
 import { NotFound } from "./NotFound";
 import ScrollToTop from "./ScrollToTop";
 import { List } from "immutable";
-import { getAllItem, IS_LOCAL } from "../api";
+import { getAllItem, OFFLINE } from "../api";
 import randomTree = Item.randomTree;
 
 
@@ -25,7 +25,7 @@ class App extends React.Component<Props, State> {
 
   getTreeFromServer = () => {
     let future: Promise<Item>;
-    if (IS_LOCAL) {
+    if (OFFLINE) {
       future = new Promise((resolve) => {
         resolve(randomTree(100));
       });

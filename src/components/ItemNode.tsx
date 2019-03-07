@@ -8,7 +8,7 @@ import { EditState } from "./ItemList";
 import { Select } from "../utils";
 import { Toggle } from "./Toggle";
 import { List } from "immutable";
-import { deleteItem, IS_LOCAL, postChangedItems } from "../api";
+import { deleteItem, OFFLINE, postChangedItems } from "../api";
 import { EditorState } from "draft-js";
 import Timer = NodeJS.Timer;
 
@@ -88,7 +88,7 @@ export class ItemNode extends React.Component<Props, State> {
     const focus = { column: -1, row: -1 };
     const editing: EditState = { path: prev, selection: { focus } };
     updateTree(tree => Item.remove(tree, path), () => edit(editing));
-    if (!IS_LOCAL) {
+    if (!OFFLINE) {
       deleteItem(this.props.item.id).catch(console.warn);
     }
   };
@@ -179,7 +179,7 @@ export class ItemNode extends React.Component<Props, State> {
   }
 
   componentDidUpdate() {
-    if (!IS_LOCAL) {
+    if (!OFFLINE) {
       if (this.submitTimer !== null) {
         clearTimeout(this.submitTimer);
       }
@@ -252,7 +252,7 @@ export class ItemNode extends React.Component<Props, State> {
     return <div className='children'>{ items }</div>;
   }
 
-  renderLoading() {
+  static renderLoading() {
     return (
       <div className="item-loading">
         <p>loading...</p>
@@ -283,7 +283,7 @@ export class ItemNode extends React.Component<Props, State> {
             remove={ this.remove } toggle={ this.toggle } swap={ this.swap }
           />
         </div>
-        { item.expand ? (this.state.loading ? this.renderLoading() : this.renderChildren()) : null }
+        { item.expand ? (this.state.loading ? ItemNode.renderLoading() : this.renderChildren()) : null }
       </div>
     );
   }
